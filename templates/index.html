@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Robô Bet365 - NBA Props</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <style>
+        body { 
+            background-color: #0f1015; 
+            color: #ffffff; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .texto-destaque { color: #00ff88 !important; font-weight: bold; }
+        .texto-cinza { color: #aaaaaa !important; }
+        
+        /* Estilo dos Cards Glassmorphism */
+        .card-aposta { 
+            background: rgba(30, 30, 35, 0.6); 
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05); 
+            border-radius: 16px; 
+            margin-bottom: 20px; 
+            color: #ffffff !important; 
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            transition: transform 0.3s ease;
+        }
+        .card-aposta:hover { transform: translateY(-5px); }
+        
+        /* O Termômetro de Risco (Neon Power Bar) */
+        .termometro-bg { 
+            width: 100%; 
+            height: 12px; 
+            background: #1a1a1a; 
+            border-radius: 10px; 
+            overflow: hidden; 
+            position: relative; 
+            border: 1px solid #333; 
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.5);
+        }
+        .termometro-fill { 
+            height: 100%; 
+            /* O gradiente vai do vermelho (baixo acerto) pro verde (alto acerto) */
+            background: linear-gradient(90deg, #ff3333, #ffcc00, #00ff88); 
+            background-size: 200% 100%;
+            transition: width 1.5s cubic-bezier(0.25, 1, 0.5, 1); 
+            box-shadow: 0 0 15px rgba(0,255,136,0.6); 
+        }
+
+        /* Inputs estilizados */
+        .form-control, .form-select { 
+            background-color: #1a1b22; 
+            color: #fff; 
+            border: 1px solid #333; 
+            border-radius: 8px;
+            padding: 12px;
+        }
+        .form-control:focus, .form-select:focus { 
+            background-color: #23252e; 
+            color: #fff; 
+            border-color: #00ff88; 
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.2); 
+        }
+        
+        /* Caixa de Texto da IA */
+        .box-ia {
+            background: rgba(0, 255, 136, 0.05);
+            border-left: 3px solid #00ff88;
+            border-radius: 0 8px 8px 0;
+            padding: 15px;
+            font-style: italic;
+            color: #e0e0e0;
+        }
+
+        .btn-neon-action {
+            background-color: #00ff88;
+            color: #000;
+            font-weight: bold;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        .btn-neon-action:hover {
+            background-color: #00cc6a;
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.5);
+        }
+        
+        /* Animação de carregamento pulsante */
+        .loading-pulse {
+            animation: pulse-op 1.5s infinite;
+        }
+        @keyframes pulse-op {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; text-shadow: 0 0 10px #00ff88; }
+            100% { opacity: 0.6; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-4">
+        <div class="text-center mb-5 animate__animated animate__fadeInDown">
+            <h1 class="fw-bold"><span class="texto-destaque">IA</span> NBA PROPS</h1>
+            <p class="texto-cinza text-uppercase tracking-wide small">Painel Analítico de Risco</p>
+        </div>
+
+        <div class="card card-aposta p-4 mb-5 animate__animated animate__fadeInUp">
+            <h4 class="texto-destaque mb-4"><i class="bi bi-crosshair"></i> Modo Sniper</h4>
+            
+            <div class="row g-3">
+                <div class="col-md-5">
+                    <input type="text" id="sniper-jogador" class="form-control" placeholder="Jogador (ex: Stephen Curry)">
+                </div>
+                <div class="col-md-3">
+                    <select id="sniper-mercado" class="form-select">
+                        <option value="player_points">Pontos</option>
+                        <option value="player_rebounds">Rebotes</option>
+                        <option value="player_assists">Assistências</option>
+                        <option value="player_threes">Cestas de 3</option>
+                        <option value="player_blocks">Tocos</option>
+                        <option value="player_steals">Roubos</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <input type="number" step="0.5" id="sniper-linha" class="form-control" placeholder="Linha">
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-neon-action w-100 h-100" onclick="analisarSniper()">Fogo Livre</button>
+                </div>
+            </div>
+
+            <div id="resultado-sniper" class="mt-4" style="display: none;"></div>
+        </div>
+
+        <h4 class="mb-4 text-center fw-bold animate__animated animate__fadeIn">📡 Radar Global</h4>
+        
+        <div id="area-botao-radar" class="text-center py-4 animate__animated animate__zoomIn">
+            <button class="btn btn-outline-success btn-lg fw-bold px-5 rounded-pill" onclick="iniciarRadar()" style="border-width: 2px;">
+                INICIAR VARREDURA DO MERCADO
+            </button>
+            <p class="texto-cinza small mt-3">Aviso: Processar a rede global leva de 1 a 2 minutos.</p>
+        </div>
+        
+        <div id="loading" class="text-center py-5" style="display: none;">
+            <div class="spinner-border text-success mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
+            <h5 class="loading-pulse texto-destaque">A IA ESTÁ CRUZANDO DADOS E DEFESAS...</h5>
+        </div>
+        
+        <div id="resultados" class="row" style="display: none;"></div>
+    </div>
+
+    <script>
+        function montarCard(dados) {
+            // Cria um visual de termômetro incrível para o resultado
+            let corSelo = dados.confianca >= 85 ? 'bg-success' : (dados.confianca >= 70 ? 'bg-warning text-dark' : 'bg-danger');
+            
+            return `
+                <div class="p-4 mt-3 animate__animated animate__fadeIn" style="background: rgba(20,20,20,0.8); border-radius: 12px; border-top: 4px solid #00ff88;">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <h3 class="mb-0 fw-bold text-white">${dados.jogador}</h3>
+                        <span class="badge ${corSelo} fs-5 shadow">${dados.confianca.toFixed(1)}% Score</span>
+                    </div>
+                    
+                    <p class="small text-warning mb-4 fw-bold">⚔️ Confronto: vs ${dados.adversario_encontrado || dados.partida}</p>
+
+                    <h4 class="texto-destaque mb-3">🔥 ${dados.sugestao} ${dados.linha} ${dados.mercado}</h4>
+                    
+                    <div class="box-ia mb-4 shadow-sm">
+                        🤖 ${dados.explicacao}
+                    </div>
+
+                    <div class="d-flex justify-content-between small mb-1 texto-cinza">
+                        <span>Alto Risco</span>
+                        <span>Aposta Segura</span>
+                    </div>
+                    
+                    <div class="termometro-bg mb-3">
+                        <div class="termometro-fill" style="width: 0%;" id="barra-${dados.jogador.replace(/\s+/g, '')}"></div>
+                    </div>
+                    
+                    <p class="small mb-0 texto-cinza">Média 10 jogos: <strong class="text-white">${dados.media.toFixed(1)}</strong> | Histórico: <span class="font-monospace text-light">[${dados.historico.join(', ')}]</span></p>
+                </div>
+            `;
+        }
+
+        function analisarSniper() {
+            const jogador = document.getElementById('sniper-jogador').value;
+            const mercado = document.getElementById('sniper-mercado').value;
+            const linha = document.getElementById('sniper-linha').value;
+
+            if(!jogador || !linha) { alert("Informe o jogador e a linha da Bet365!"); return; }
+
+            const divResultado = document.getElementById('resultado-sniper');
+            divResultado.style.display = 'block';
+            divResultado.innerHTML = `<h5 class="loading-pulse text-success mt-3 text-center">Buscando defesas e cruzando algoritmos...</h5>`;
+
+            fetch('/api/sniper', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ jogador, mercado, linha })
+            })
+            .then(res => res.json())
+            .then(dados => {
+                if(dados.erro) {
+                    divResultado.innerHTML = `<h5 class="text-danger mt-3 text-center">❌ ${dados.erro}</h5>`;
+                } else {
+                    divResultado.innerHTML = montarCard(dados);
+                    // Anima o termômetro com um pequeno atraso para dar um efeito "Uau"
+                    setTimeout(() => {
+                        document.getElementById(`barra-${dados.jogador.replace(/\s+/g, '')}`).style.width = `${dados.confianca}%`;
+                    }, 100);
+                }
+            })
+            .catch(err => divResultado.innerHTML = `<h5 class="text-danger mt-3">❌ Erro de conexão com a API.</h5>`);
+        }
+
+        function iniciarRadar() {
+            document.getElementById('area-botao-radar').style.display = 'none';
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('resultados').style.display = 'none';
+            document.getElementById('resultados').innerHTML = '';
+
+            fetch('/api/dados')
+                .then(response => response.json())
+                .then(apostas => {
+                    document.getElementById('loading').style.display = 'none';
+                    const container = document.getElementById('resultados');
+                    container.style.display = 'flex';
+
+                    if (apostas.length === 0) {
+                        container.innerHTML = `<div class="col-12 text-center animate__animated animate__fadeIn"><div class="p-5" style="background: rgba(20,20,20,0.8); border-radius: 16px;"><h4 class="text-warning mb-4">⚠️ O algoritmo não encontrou nenhuma entrada com Hit Rate acima de 70% neste momento.</h4><p class="texto-cinza">Isso significa que o mercado está perigoso ou as linhas ainda estão fechadas. Proteja sua banca e tente mais tarde.</p><button class="btn btn-outline-light mt-3" onclick="resetarRadar()">Voltar ao Início</button></div></div>`;
+                        return;
+                    }
+
+                    apostas.forEach((aposta, index) => {
+                        // Cria um delay em cascata para as cartas aparecerem uma depois da outra (efeito Matrix)
+                        const delay = index * 0.1;
+                        container.innerHTML += `
+                            <div class="col-md-6 animate__animated animate__fadeInUp" style="animation-delay: ${delay}s">
+                                ${montarCard(aposta)}
+                            </div>`;
+                    });
+
+                    // Preenche os termômetros do Radar depois de renderizar
+                    setTimeout(() => {
+                        apostas.forEach(aposta => {
+                            let barra = document.getElementById(`barra-${aposta.jogador.replace(/\s+/g, '')}`);
+                            if(barra) barra.style.width = `${aposta.confianca}%`;
+                        });
+                    }, 300);
+
+                    container.innerHTML += `<div class="col-12 text-center mt-5 mb-4 animate__animated animate__fadeIn" style="animation-delay: 1s"><button class="btn btn-outline-success rounded-pill px-4" onclick="resetarRadar()">🔄 Nova Varredura</button></div>`;
+                });
+        }
+        function resetarRadar() { document.getElementById('resultados').style.display = 'none'; document.getElementById('area-botao-radar').style.display = 'block'; }
+    </script>
+</body>
+</html>

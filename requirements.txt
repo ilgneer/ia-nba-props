@@ -1,0 +1,5 @@
+flask
+requests
+nba_api
+pandas
+numpy
