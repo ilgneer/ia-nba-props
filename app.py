@@ -2,18 +2,18 @@ from flask import Flask, render_template, jsonify, request
 import requests
 from nba_api.stats.static import players
 from nba_api.stats.endpoints import playergamelog, commonplayerinfo
+from nba_api.live.nba.endpoints import scoreboard, boxscore
 import time
 import google.generativeai as genai
 import os
 from dotenv import load_dotenv
 
-# --- SEGURANÇA MÁXIMA ---
-# Carrega as chaves do arquivo invisível .env para não expor no GitHub
+# Carrega as chaves do arquivo invisível .env
 load_dotenv()
 
 app = Flask(__name__)
 
-# PUXANDO AS CHAVES DE FORMA SEGURA DO .env
+# PUXANDO AS CHAVES DE FORMA SEGURA
 CHAVE_ODDS_API = os.getenv('CHAVE_ODDS_API')
 CHAVE_GEMINI_IA = os.getenv('CHAVE_GEMINI_IA')
 
@@ -33,18 +33,16 @@ MAPA_MERCADOS = {
     'player_steals': {'coluna': 'STL', 'nome': 'Roubos'}
 }
 
-# --- FUNÇÃO MÁGICA: GERA O TEXTO E O PESO MATEMÁTICO DA DEFESA ---
 def gerar_relatorio_ia(nome_jogador, nome_mercado, linha, sugestao, media, historico, adversario, confianca_base):
     if not model:
         return 1.0, f"Matemática indica: {sugestao} {linha} {nome_mercado}."
         
-    # A COLEIRA DA IA: Forçando ela a concordar com a matemática
     prompt = (
         f"Aja como um analista de NBA. O nosso sistema matemático JÁ DECIDIU que a melhor aposta é OBRIGATORIAMENTE: '{sugestao}' {linha} {nome_mercado} para {nome_jogador} contra o {adversario}.\n"
         f"Média recente (10 jogos): {media:.1f}. Histórico: {historico}.\n\n"
         f"Sua tarefa:\n"
         f"1. Avalie a defesa do {adversario} e defina um PESO de 0.8 (difícil) a 1.2 (fácil).\n"
-        f"2. Escreva 3 linhas EXPLICANDO o porquê essa aposta '{sugestao}' é excelente. NUNCA sugira o contrário do que o sistema mandou.\n\n"
+        f"2. Escreva 3 linhas EXPLICANDO o porquê essa aposta '{sugestao}' é excelente. NUNCA sugira o contrário.\n\n"
         f"Responda EXATAMENTE:\n"
         f"PESO: [numero]\n"
         f"TEXTO: [sua analise]"
@@ -57,8 +55,7 @@ def gerar_relatorio_ia(nome_jogador, nome_mercado, linha, sugestao, media, histo
         peso_defesa = 1.0
         texto_final = f"Análise: Recomendação forte de {sugestao} {linha} {nome_mercado}."
         
-        linhas_resposta = resposta_texto.split('\n')
-        for linha_resp in linhas_resposta:
+        for linha_resp in resposta_texto.split('\n'):
             if linha_resp.upper().startswith('PESO:'):
                 try: peso_defesa = float(linha_resp.split(':')[1].strip())
                 except: pass
@@ -71,19 +68,13 @@ def gerar_relatorio_ia(nome_jogador, nome_mercado, linha, sugestao, media, histo
         print(f"❌ Erro na IA: {e}")
         return 1.0, f"Matemática indica: {sugestao} {linha} {nome_mercado}."
 
-# --- FUNÇÃO DO RADAR AUTOMÁTICO ---
 def buscar_analises():
     print("\n📡 INICIANDO O RADAR ANTI-RED (10 JOGOS)...")
     if not CHAVE_ODDS_API:
-        print("⚠️ ERRO: Chave da Odds API não encontrada no .env!")
         return []
         
     url_jogos = 'https://api.the-odds-api.com/v4/sports/basketball_nba/events'
     resposta_jogos = requests.get(url_jogos, params={'apiKey': CHAVE_ODDS_API})
-    
-    creditos = resposta_jogos.headers.get('x-requests-remaining', 'Desconhecido')
-    print(f"💳 CRÉDITOS THE ODDS API RESTANTES: {creditos}")
-    
     jogos = resposta_jogos.json()
     if not isinstance(jogos, list): return []
 
@@ -99,7 +90,6 @@ def buscar_analises():
         resposta_odds = requests.get(url_odds, params=parametros).json()
         
         if len(resposta_odds.get('bookmakers', [])) == 0: continue
-            
         try: lista_mercados_abertos = resposta_odds['bookmakers'][0]['markets']
         except: continue
         
@@ -109,17 +99,19 @@ def buscar_analises():
             if chave_mercado not in MAPA_MERCADOS: continue
             coluna_nba = MAPA_MERCADOS[chave_mercado]['coluna']
             nome_bonito = MAPA_MERCADOS[chave_mercado]['nome']
+            
             for aposta in mercado_info['outcomes']:
                 nome_jogador = aposta['description']
                 linha_casa = aposta['point']
                 tipo_aposta = aposta['name'] 
                 id_processamento = f"{nome_jogador}_{chave_mercado}"
+                
                 if id_processamento in jogadores_processados or tipo_aposta != 'Over': continue
                 jogadores_processados.append(id_processamento)
                 jogador_info = next((p for p in nba_players if p['full_name'] == nome_jogador), None)
                 if not jogador_info: continue
+                
                 try:
-                    # OLHAMOS OS ÚLTIMOS 10 JOGOS
                     historico = playergamelog.PlayerGameLog(player_id=jogador_info['id'])
                     df_jogos = historico.get_data_frames()[0].head(10) 
                     tamanho_amostra = len(df_jogos)
@@ -128,12 +120,10 @@ def buscar_analises():
                     valores = df_jogos[coluna_nba].tolist()
                     media = sum(valores) / tamanho_amostra
                     
-                    # CÁLCULO REAL DE HIT RATE (TAXA DE ACERTO)
                     overs = sum(1 for v in valores if v > linha_casa)
                     unders = sum(1 for v in valores if v < linha_casa)
                     
                     recomendacao = 'MAIS DE' if media > linha_casa else 'MENOS DE'
-                    
                     if recomendacao == 'MAIS DE':
                         taxa_acerto = (overs / tamanho_amostra) * 100
                         confianca = taxa_acerto + ((media - linha_casa) * 2)
@@ -143,7 +133,6 @@ def buscar_analises():
                         
                     confianca = min(max(confianca, 0.0), 99.0)
                     
-                    # FILTRO PROFISSIONAL: Só aprova se a Taxa de Acerto for >= 70% E Confiança alta
                     if confianca > 80.0 and taxa_acerto >= 70.0:
                         analises_finais.append({
                             'jogador': nome_jogador,
@@ -161,7 +150,6 @@ def buscar_analises():
     
     return sorted(analises_finais, key=lambda x: x['confianca'], reverse=True)[:10]
 
-# --- ROTAS DO SITE ---
 @app.route('/')
 def pagina_vendas():
     return render_template('landing.html')
@@ -186,19 +174,16 @@ def api_sniper():
     
     nba_players = players.get_players()
     jogador_info = next((p for p in nba_players if p['full_name'].lower() == nome_jogador.lower().strip()), None)
-    if not jogador_info: return jsonify({'erro': f'Jogador "{nome_jogador}" não encontrado na base da NBA.'})
+    if not jogador_info: return jsonify({'erro': f'Jogador "{nome_jogador}" não encontrado.'})
         
     try:
-        # --- BUSCA AUTOMÁTICA DO ADVERSÁRIO ---
         info_nba = commonplayerinfo.CommonPlayerInfo(player_id=jogador_info['id']).get_data_frames()[0]
         time_do_jogador = str(info_nba['TEAM_NAME'].iloc[0]) 
-        
         adversario = "o time adversário" 
         
         if CHAVE_ODDS_API:
             url_jogos = 'https://api.the-odds-api.com/v4/sports/basketball_nba/events'
             jogos_de_hoje = requests.get(url_jogos, params={'apiKey': CHAVE_ODDS_API}).json()
-            
             if isinstance(jogos_de_hoje, list):
                 for jogo in jogos_de_hoje:
                     if time_do_jogador.lower() in jogo['home_team'].lower():
@@ -207,13 +192,11 @@ def api_sniper():
                     elif time_do_jogador.lower() in jogo['away_team'].lower():
                         adversario = jogo['home_team']
                         break
-        # --------------------------------------
 
-        # SNIPER COM HISTÓRICO DE 10 JOGOS
         historico = playergamelog.PlayerGameLog(player_id=jogador_info['id'])
         df_jogos = historico.get_data_frames()[0].head(10)
         tamanho_amostra = len(df_jogos)
-        if tamanho_amostra < 5: return jsonify({'erro': 'Poucos jogos recentes na temporada.'})
+        if tamanho_amostra < 5: return jsonify({'erro': 'Poucos jogos recentes.'})
         
         valores = df_jogos[coluna_nba].tolist()
         media = sum(valores) / tamanho_amostra
@@ -231,13 +214,11 @@ def api_sniper():
             
         confianca_base = min(max(confianca_base, 0.0), 99.0)
         
-        # Chama a IA para pegar o Peso da Defesa e o Texto
         peso_adversario, texto_unico_ia = gerar_relatorio_ia(
             jogador_info['full_name'], nome_bonito, linha, 
             recomendacao, media, valores, adversario, confianca_base
         )
         
-        # Ajusta a nota com base no adversário
         confianca_final = confianca_base * peso_adversario
         confianca_final = min(max(confianca_final, 0.0), 99.0)
         
@@ -254,7 +235,76 @@ def api_sniper():
         })
     except Exception as e:
         print(f"Erro no Sniper: {e}")
-        return jsonify({'erro': 'Erro nos servidores da NBA ou The Odds API.'})
+        return jsonify({'erro': f'🕵️ Erro: {str(e)}'})
+
+@app.route('/api/live', methods=['POST'])
+def api_live():
+    dados = request.json
+    apostas = dados.get('apostas', [])
+    if not apostas: return jsonify({})
+
+    resultados = {}
+    try:
+        board = scoreboard.ScoreBoard()
+        jogos = board.games.get_dict()
+        jogadores_ativos = {}
+        
+        for jogo in jogos:
+            status = jogo['gameStatus']
+            texto_status = jogo['gameStatusText']
+            
+            if status in [2, 3]:
+                try:
+                    bx = boxscore.BoxScore(jogo['gameId'])
+                    dados_jogo = bx.game.get_dict()
+                    todos_jogadores = dados_jogo['homeTeam']['players'] + dados_jogo['awayTeam']['players']
+                    
+                    for p in todos_jogadores:
+                        nome = p['name'].lower().strip()
+                        jogadores_ativos[nome] = {
+                            'status_jogo': texto_status,
+                            'stats': p['statistics'],
+                            'em_quadra': str(p.get('oncourt', '0')) == '1'
+                        }
+                except:
+                    continue
+
+        mapa_stats = {
+            'Pontos': 'points',
+            'Rebotes': 'reboundsTotal',
+            'Assistências': 'assists',
+            'Cestas de 3': 'threePointersMade',
+            'Tocos': 'blocks',
+            'Roubos': 'steals'
+        }
+
+        for aposta in apostas:
+            id_ap = str(aposta['id'])
+            nome_ap = aposta['jogador'].lower().strip()
+            mercado_ap = aposta['mercado']
+            
+            if nome_ap in jogadores_ativos:
+                dados_jog = jogadores_ativos[nome_ap]
+                chave_stat = mapa_stats.get(mercado_ap, 'points')
+                valor_atual = dados_jog['stats'].get(chave_stat, 0)
+                
+                resultados[id_ap] = {
+                    'iniciado': True,
+                    'status': dados_jog['status_jogo'],
+                    'valor_atual': valor_atual,
+                    'em_quadra': dados_jog['em_quadra']
+                }
+            else:
+                resultados[id_ap] = {
+                    'iniciado': False,
+                    'status': "Aguardando início",
+                    'valor_atual': 0
+                }
+                
+        return jsonify(resultados)
+    except Exception as e:
+        print(f"Erro no Live Tracker: {e}")
+        return jsonify({'erro': 'Falha ao buscar dados ao vivo'})
 
 if __name__ == '__main__':
     app.run(debug=True)

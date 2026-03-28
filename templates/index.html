@@ -5,17 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Robô Bet365 - NBA Props</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
     <style>
-        body { 
-            background-color: #0f1015; 
-            color: #ffffff; 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
+        body { background-color: #0f1015; color: #ffffff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         .texto-destaque { color: #00ff88 !important; font-weight: bold; }
         .texto-cinza { color: #aaaaaa !important; }
         
-        /* Estilo dos Cards Glassmorphism */
         .card-aposta { 
             background: rgba(30, 30, 35, 0.6); 
             backdrop-filter: blur(12px);
@@ -28,228 +24,497 @@
         }
         .card-aposta:hover { transform: translateY(-5px); }
         
-        /* O Termômetro de Risco (Neon Power Bar) */
-        .termometro-bg { 
-            width: 100%; 
-            height: 12px; 
-            background: #1a1a1a; 
-            border-radius: 10px; 
-            overflow: hidden; 
-            position: relative; 
-            border: 1px solid #333; 
-            box-shadow: inset 0 2px 5px rgba(0,0,0,0.5);
-        }
-        .termometro-fill { 
-            height: 100%; 
-            /* O gradiente vai do vermelho (baixo acerto) pro verde (alto acerto) */
-            background: linear-gradient(90deg, #ff3333, #ffcc00, #00ff88); 
-            background-size: 200% 100%;
-            transition: width 1.5s cubic-bezier(0.25, 1, 0.5, 1); 
-            box-shadow: 0 0 15px rgba(0,255,136,0.6); 
-        }
+        .termometro-bg { width: 100%; height: 12px; background: #1a1a1a; border-radius: 10px; overflow: hidden; position: relative; border: 1px solid #333; }
+        .termometro-fill { height: 100%; background: linear-gradient(90deg, #ff3333, #ffcc00, #00ff88); background-size: 200% 100%; transition: width 1.5s cubic-bezier(0.25, 1, 0.5, 1); box-shadow: 0 0 15px rgba(0,255,136,0.6); }
 
-        /* Inputs estilizados */
-        .form-control, .form-select { 
-            background-color: #1a1b22; 
-            color: #fff; 
-            border: 1px solid #333; 
-            border-radius: 8px;
-            padding: 12px;
-        }
-        .form-control:focus, .form-select:focus { 
-            background-color: #23252e; 
-            color: #fff; 
-            border-color: #00ff88; 
-            box-shadow: 0 0 10px rgba(0, 255, 136, 0.2); 
-        }
+        .form-control, .form-select { background-color: #1a1b22; color: #fff; border: 1px solid #333; border-radius: 8px; padding: 12px; }
+        .form-control:focus, .form-select:focus { background-color: #23252e; color: #fff; border-color: #00ff88; box-shadow: 0 0 10px rgba(0, 255, 136, 0.2); }
         
-        /* Caixa de Texto da IA */
-        .box-ia {
-            background: rgba(0, 255, 136, 0.05);
-            border-left: 3px solid #00ff88;
-            border-radius: 0 8px 8px 0;
-            padding: 15px;
-            font-style: italic;
-            color: #e0e0e0;
-        }
+        .box-ia { background: rgba(0, 255, 136, 0.05); border-left: 3px solid #00ff88; border-radius: 0 8px 8px 0; padding: 15px; font-style: italic; color: #e0e0e0; }
 
-        .btn-neon-action {
-            background-color: #00ff88;
-            color: #000;
-            font-weight: bold;
-            border-radius: 8px;
-            transition: all 0.3s;
-        }
-        .btn-neon-action:hover {
-            background-color: #00cc6a;
-            box-shadow: 0 0 15px rgba(0, 255, 136, 0.5);
-        }
+        .btn-neon-action { background-color: #00ff88; color: #000; font-weight: bold; border-radius: 8px; transition: all 0.3s; }
+        .btn-neon-action:hover { background-color: #00cc6a; box-shadow: 0 0 15px rgba(0, 255, 136, 0.5); }
         
-        /* Animação de carregamento pulsante */
-        .loading-pulse {
-            animation: pulse-op 1.5s infinite;
-        }
-        @keyframes pulse-op {
-            0% { opacity: 0.6; }
-            50% { opacity: 1; text-shadow: 0 0 10px #00ff88; }
-            100% { opacity: 0.6; }
-        }
+        .loading-pulse { animation: pulse-op 1.5s infinite; }
+        @keyframes pulse-op { 0% { opacity: 0.6; } 50% { opacity: 1; text-shadow: 0 0 10px #00ff88; } 100% { opacity: 0.6; } }
+
+        #secao-tracker { background: linear-gradient(145deg, #12141a, #1a1c24); border: 1px solid #00ff88; border-radius: 16px; box-shadow: 0 0 20px rgba(0, 255, 136, 0.1); }
+        .tracker-card { background: #0a0b0e; border-left: 4px solid #00ff88; border-radius: 8px; transition: transform 0.2s; }
+        .tracker-card:hover { transform: scale(1.02); }
+        .form-manual { background: rgba(0, 255, 136, 0.05); border: 1px dashed #00ff88; border-radius: 12px; }
+
+        #secao-historico { background: rgba(20,20,20,0.8); border: 1px solid #333; border-radius: 16px; }
+        .stat-box { border-radius: 12px; padding: 15px; border: 1px solid #333; text-align: center; }
+        .stat-rate { background: rgba(0, 204, 255, 0.1); border-color: #00ccff; }
+        .stat-green { background: rgba(0, 255, 136, 0.1); border-color: #00ff88; }
+        .stat-money { background: rgba(255, 204, 0, 0.1); border-color: #ffcc00; }
+        
+        /* Estilos do Item de Histórico Clicável */
+        .hist-item { background: #1a1c24; border-radius: 8px; padding: 15px; margin-bottom: 10px; border-left: 4px solid #333; cursor: pointer; transition: all 0.2s; }
+        .hist-item:hover { transform: scale(1.01); background: #23252e; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        .hist-green { border-left-color: #00ff88; }
+        .hist-red { border-left-color: #ff3333; }
+
+        /* Estilos Especiais do Popup Modal */
+        .modal-content.glass-modal { background: rgba(20, 20, 25, 0.95); backdrop-filter: blur(15px); border: 1px solid rgba(0, 255, 136, 0.3); border-radius: 20px; box-shadow: 0 0 40px rgba(0,0,0,0.8); }
+        .selecao-detalhe { background: #0f1015; border-radius: 8px; padding: 12px; margin-bottom: 8px; border-left: 3px solid #333; }
+        .selecao-detalhe.green { border-left-color: #00ff88; }
+        .selecao-detalhe.red { border-left-color: #ff3333; }
     </style>
 </head>
 <body>
     <div class="container py-4">
         <div class="text-center mb-5 animate__animated animate__fadeInDown">
             <h1 class="fw-bold"><span class="texto-destaque">IA</span> NBA PROPS</h1>
-            <p class="texto-cinza text-uppercase tracking-wide small">Painel Analítico de Risco</p>
+            <p class="texto-cinza text-uppercase tracking-wide small">Painel Autônomo & Gestão de Acumuladores</p>
+        </div>
+
+        <div id="secao-historico" class="mb-5 p-4 animate__animated animate__fadeIn">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h3 class="text-white fw-bold mb-0"><i class="bi bi-wallet2 text-warning"></i> Meu Caixa Bet365</h3>
+                <button class="btn btn-sm btn-outline-secondary" onclick="limparHistorico()"><i class="bi bi-trash3"></i> Zerar Histórico</button>
+            </div>
+            
+            <div class="row g-3 mb-4">
+                <div class="col-4">
+                    <div class="stat-box stat-rate">
+                        <h4 class="text-info fw-bold mb-0" id="stat-entradas">0</h4>
+                        <small class="texto-cinza fw-bold">BILHETES</small>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="stat-box stat-green">
+                        <h4 class="text-success fw-bold mb-0" id="stat-vitorias">0</h4>
+                        <small class="texto-cinza fw-bold">VITÓRIAS</small>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="stat-box stat-money">
+                        <h4 class="text-warning fw-bold mb-0">R$ <span id="stat-ganhos">0</span></h4>
+                        <small class="texto-cinza fw-bold">LUCRO</small>
+                    </div>
+                </div>
+            </div>
+
+            <div id="lista-historico" style="max-height: 300px; overflow-y: auto; overflow-x: hidden; padding-right: 5px;"></div>
+        </div>
+
+        <div id="secao-tracker" class="mb-5 p-4 animate__animated animate__fadeIn">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h3 class="text-white fw-bold mb-0"><i class="bi bi-ticket-detailed text-danger loading-pulse"></i> Bilhete de Hoje</h3>
+                <div>
+                    <button class="btn btn-sm btn-outline-success me-2 fw-bold" onclick="abrirFormManual()">
+                        <i class="bi bi-plus-lg"></i> Adicionar Manual
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="limparTracker()"><i class="bi bi-x-circle"></i></button>
+                </div>
+            </div>
+
+            <div id="area-form-manual" class="form-manual p-3 mb-4 animate__animated animate__fadeIn" style="display: none;">
+                <div class="row g-2">
+                    <div class="col-md-3">
+                        <input type="text" id="manual-jogador" class="form-control" placeholder="Jogador (ex: LeBron)">
+                    </div>
+                    <div class="col-md-3">
+                        <select id="manual-mercado" class="form-select">
+                            <option value="Pontos">Pontos</option>
+                            <option value="Rebotes">Rebotes</option>
+                            <option value="Assistências">Assistências</option>
+                            <option value="Cestas de 3">Cestas de 3</option>
+                            <option value="Tocos">Tocos</option>
+                            <option value="Roubos">Roubos</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <input type="number" step="0.5" id="manual-linha" class="form-control" placeholder="Linha">
+                    </div>
+                    <div class="col-md-2">
+                        <select id="manual-sugestao" class="form-select">
+                            <option value="MAIS DE">Mais de</option>
+                            <option value="MENOS DE">Menos de</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-flex gap-1">
+                        <button class="btn btn-success w-100 fw-bold" onclick="salvarManual()"><i class="bi bi-check-lg"></i></button>
+                        <button class="btn btn-outline-secondary w-100" onclick="abrirFormManual()"><i class="bi bi-x-lg"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="mensagem-vazio" class="text-center p-4 texto-cinza" style="display: none;">
+                <i class="bi bi-receipt fs-1 mb-2"></i>
+                <p>Nenhuma seleção adicionada ao bilhete de hoje.</p>
+            </div>
+
+            <div id="lista-tracker" class="row g-3"></div>
         </div>
 
         <div class="card card-aposta p-4 mb-5 animate__animated animate__fadeInUp">
             <h4 class="texto-destaque mb-4"><i class="bi bi-crosshair"></i> Modo Sniper</h4>
-            
             <div class="row g-3">
-                <div class="col-md-5">
-                    <input type="text" id="sniper-jogador" class="form-control" placeholder="Jogador (ex: Stephen Curry)">
-                </div>
+                <div class="col-md-5"><input type="text" id="sniper-jogador" class="form-control" placeholder="Jogador (ex: Stephen Curry)"></div>
                 <div class="col-md-3">
                     <select id="sniper-mercado" class="form-select">
-                        <option value="player_points">Pontos</option>
-                        <option value="player_rebounds">Rebotes</option>
-                        <option value="player_assists">Assistências</option>
-                        <option value="player_threes">Cestas de 3</option>
-                        <option value="player_blocks">Tocos</option>
-                        <option value="player_steals">Roubos</option>
+                        <option value="player_points">Pontos</option><option value="player_rebounds">Rebotes</option><option value="player_assists">Assistências</option>
+                        <option value="player_threes">Cestas de 3</option><option value="player_blocks">Tocos</option><option value="player_steals">Roubos</option>
                     </select>
                 </div>
-                <div class="col-md-2">
-                    <input type="number" step="0.5" id="sniper-linha" class="form-control" placeholder="Linha">
-                </div>
-                <div class="col-md-2">
-                    <button class="btn btn-neon-action w-100 h-100" onclick="analisarSniper()">Fogo Livre</button>
-                </div>
+                <div class="col-md-2"><input type="number" step="0.5" id="sniper-linha" class="form-control" placeholder="Linha"></div>
+                <div class="col-md-2"><button class="btn btn-neon-action w-100 h-100" onclick="analisarSniper()">Fogo Livre</button></div>
             </div>
-
             <div id="resultado-sniper" class="mt-4" style="display: none;"></div>
         </div>
 
         <h4 class="mb-4 text-center fw-bold animate__animated animate__fadeIn">📡 Radar Global</h4>
-        
-        <div id="area-botao-radar" class="text-center py-4 animate__animated animate__zoomIn">
-            <button class="btn btn-outline-success btn-lg fw-bold px-5 rounded-pill" onclick="iniciarRadar()" style="border-width: 2px;">
-                INICIAR VARREDURA DO MERCADO
-            </button>
-            <p class="texto-cinza small mt-3">Aviso: Processar a rede global leva de 1 a 2 minutos.</p>
-        </div>
-        
-        <div id="loading" class="text-center py-5" style="display: none;">
-            <div class="spinner-border text-success mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
-            <h5 class="loading-pulse texto-destaque">A IA ESTÁ CRUZANDO DADOS E DEFESAS...</h5>
-        </div>
-        
+        <div id="area-botao-radar" class="text-center py-4 animate__animated animate__zoomIn"><button class="btn btn-outline-success btn-lg fw-bold px-5 rounded-pill" onclick="iniciarRadar()" style="border-width: 2px;">INICIAR VARREDURA DO MERCADO</button></div>
+        <div id="loading" class="text-center py-5" style="display: none;"><div class="spinner-border text-success mb-3" style="width: 3rem; height: 3rem;" role="status"></div><h5 class="loading-pulse texto-destaque">A IA ESTÁ CRUZANDO DADOS E DEFESAS...</h5></div>
         <div id="resultados" class="row" style="display: none;"></div>
     </div>
 
-    <script>
-        function montarCard(dados) {
-            // Cria um visual de termômetro incrível para o resultado
-            let corSelo = dados.confianca >= 85 ? 'bg-success' : (dados.confianca >= 70 ? 'bg-warning text-dark' : 'bg-danger');
+    <div class="modal fade" id="modalBilhete" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content glass-modal text-white">
+          <div class="modal-header border-bottom-0 pb-0">
+            <h5 class="modal-title fw-bold">
+                <i class="bi bi-search text-info"></i> Raio-X da Entrada
+                <span id="modal-data" class="badge bg-secondary ms-2 fw-normal"></span>
+            </h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
             
+            <div class="row text-center mb-4 mt-2">
+                <div class="col-6" style="border-right: 1px solid rgba(255,255,255,0.1);">
+                    <h3 id="modal-placar" class="fw-bold mb-0"></h3>
+                    <small class="texto-cinza text-uppercase">Acertos</small>
+                </div>
+                <div class="col-6">
+                    <h3 id="modal-premio" class="fw-bold mb-0"></h3>
+                    <small class="texto-cinza text-uppercase">Resultado</small>
+                </div>
+            </div>
+
+            <h6 class="texto-destaque mb-3"><i class="bi bi-list-check"></i> Seleções do Bilhete:</h6>
+            <div id="modal-lista-selecoes" class="d-flex flex-column">
+                </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // BANCOS DE DADOS
+        let minhasApostas = JSON.parse(localStorage.getItem('trackerNBA')) || [];
+        let historicoApostas = JSON.parse(localStorage.getItem('historicoNBA')) || [];
+        const TABELA_PREMIOS = { 3: 10, 4: 20, 5: 40, 6: 80, 7: 150, 8: 300, 9: 500, 10: 1200 };
+
+        // --- DASHBOARD CAIXA E HISTÓRICO VISUAL ---
+        function renderizarHistorico() {
+            const divLista = document.getElementById('lista-historico');
+            divLista.innerHTML = '';
+            
+            let totalEntradas = historicoApostas.length;
+            let totalVitorias = 0;
+            let creditosGanhos = 0;
+
+            if (totalEntradas === 0) {
+                divLista.innerHTML = '<div class="text-center small texto-cinza py-3">O seu caixa está vazio. Comece a jogar!</div>';
+            } else {
+                [...historicoApostas].reverse().forEach(bilhete => {
+                    if(bilhete.isWin) { totalVitorias++; creditosGanhos += bilhete.premio; }
+                    
+                    const classeBorda = bilhete.isWin ? 'hist-green' : 'hist-red';
+                    const corGrana = bilhete.isWin ? 'text-warning' : 'texto-cinza';
+
+                    divLista.innerHTML += `
+                        <div class="hist-item ${classeBorda} d-flex justify-content-between align-items-center" onclick="abrirDetalhesBilhete(${bilhete.id})" title="Clique para ver os detalhes">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="text-white fw-bold"><i class="bi bi-calendar3 texto-cinza me-2"></i>${bilhete.data}</div>
+                            </div>
+                            <div class="text-center">
+                                <span class="badge ${bilhete.isWin ? 'bg-success' : 'bg-danger'} fs-6 px-3">${bilhete.greens}/${bilhete.total}</span>
+                            </div>
+                            <div class="text-end fw-bold fs-5 ${corGrana}">
+                                R$ ${bilhete.premio}
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            document.getElementById('stat-entradas').innerText = totalEntradas;
+            document.getElementById('stat-vitorias').innerText = totalVitorias;
+            document.getElementById('stat-ganhos').innerText = creditosGanhos;
+        }
+
+        // --- MÁGICA DO POPUP (MODAL) ---
+        function abrirDetalhesBilhete(idBilhete) {
+            const bilhete = historicoApostas.find(b => b.id === idBilhete);
+            if(!bilhete) return;
+
+            // Preenche o Cabeçalho
+            document.getElementById('modal-data').innerText = bilhete.data;
+            document.getElementById('modal-placar').innerText = `${bilhete.greens}/${bilhete.total}`;
+            document.getElementById('modal-placar').className = bilhete.isWin ? "fw-bold mb-0 text-success" : "fw-bold mb-0 text-danger";
+            
+            document.getElementById('modal-premio').innerText = `R$ ${bilhete.premio}`;
+            document.getElementById('modal-premio').className = bilhete.isWin ? "fw-bold mb-0 text-warning" : "fw-bold mb-0 text-secondary";
+
+            // Preenche as Seleções Detalhadas
+            const divLista = document.getElementById('modal-lista-selecoes');
+            divLista.innerHTML = '';
+
+            bilhete.selecoes.forEach(ap => {
+                const isGreen = ap.resultado === 'GREEN';
+                const classeCor = isGreen ? 'green' : 'red';
+                const iconeTexto = isGreen ? '<span class="text-success fw-bold">✅ Bateu</span>' : '<span class="text-danger fw-bold">❌ Red</span>';
+                
+                // REDE DE SEGURANÇA CONTRA O UNDEFINED DOS DADOS ANTIGOS
+                const valorFinal = ap.valor_final !== undefined ? ap.valor_final : '--';
+                
+                divLista.innerHTML += `
+                    <div class="selecao-detalhe ${classeCor} d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong class="text-white fs-6">${ap.jogador}</strong>
+                            <div class="small texto-cinza">Aposta: ${ap.sugestao} <span class="text-white fw-bold">${ap.linha}</span> ${ap.mercado}</div>
+                        </div>
+                        <div class="text-end">
+                            ${iconeTexto}<br>
+                            <span class="small" style="color: ${isGreen ? '#00ff88' : '#ff3333'};">Fez ${valorFinal}</span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            // Abre o Popup na Tela
+            new bootstrap.Modal(document.getElementById('modalBilhete')).show();
+        }
+
+        function limparHistorico() {
+            if(confirm('Zerar todo o seu histórico e ganhos?')) {
+                historicoApostas = []; localStorage.removeItem('historicoNBA'); renderizarHistorico();
+            }
+        }
+
+        // --- CÉREBRO AUTÔNOMO: RESOLVENDO APOSTAS SOZINHO ---
+        function verificarBilheteAuto() {
+            if (minhasApostas.length === 0) return;
+            const todasProntas = minhasApostas.every(ap => ap.resultado !== null && ap.resultado !== undefined);
+            if (!todasProntas) return;
+
+            const totalSelecoes = minhasApostas.length;
+            const greens = minhasApostas.filter(ap => ap.resultado === 'GREEN').length;
+            const reds = minhasApostas.filter(ap => ap.resultado === 'RED').length;
+            const isWin = (reds === 0 && totalSelecoes >= 3 && greens === totalSelecoes);
+            
+            let premio = 0;
+            if (isWin && TABELA_PREMIOS[totalSelecoes]) premio = TABELA_PREMIOS[totalSelecoes];
+            else if (isWin && totalSelecoes > 10) premio = 1200;
+
+            const bilheteDiario = {
+                id: Date.now(), data: new Date().toLocaleDateString('pt-BR'),
+                total: totalSelecoes, greens: greens, reds: reds, isWin: isWin, premio: premio, selecoes: minhasApostas
+            };
+
+            historicoApostas.push(bilheteDiario);
+            localStorage.setItem('historicoNBA', JSON.stringify(historicoApostas));
+
+            minhasApostas = [];
+            localStorage.setItem('trackerNBA', JSON.stringify(minhasApostas));
+
+            renderizarTracker();
+            renderizarHistorico();
+            
+            setTimeout(() => {
+                if(isWin) alert(`🤖 O ROBÔ AVISOU: Bilhete Perfeito de ${totalSelecoes} jogos!\n💸 Você faturou R$ ${premio} em créditos!`);
+                else alert(`🤖 O ROBÔ AVISOU: Hoje a casa venceu. Placar final: ${greens}/${totalSelecoes}.`);
+            }, 500);
+        }
+
+        function renderizarTracker() {
+            const lista = document.getElementById('lista-tracker');
+            const avisoVazio = document.getElementById('mensagem-vazio');
+            lista.innerHTML = '';
+            
+            if (minhasApostas.length === 0) { avisoVazio.style.display = 'block'; return; }
+            avisoVazio.style.display = 'none';
+
+            minhasApostas.forEach(ap => {
+                let statusVisual = `
+                    <div class="p-2 rounded text-center mb-2 flex-grow-1" style="background: #1a1c24; border: 1px dashed #333;" id="live-${ap.id}">
+                        <div class="spinner-border spinner-border-sm text-success mb-1"></div>
+                        <div class="small texto-cinza">Aguardando placar ao vivo...</div>
+                    </div>`;
+
+                // REDE DE SEGURANÇA CONTRA UNDEFINED NA RENDERIZAÇÃO DO RADAR
+                const valorExibicao = ap.valor_final !== undefined ? ap.valor_final : '--';
+
+                if (ap.resultado === 'GREEN') {
+                    statusVisual = `<div class="p-2 rounded text-center mb-2 flex-grow-1 bg-success bg-opacity-25 border border-success"><strong class="text-success fs-5">✅ BATEU (${valorExibicao})</strong></div>`;
+                } else if (ap.resultado === 'RED') {
+                    statusVisual = `<div class="p-2 rounded text-center mb-2 flex-grow-1 bg-danger bg-opacity-25 border border-danger"><strong class="text-danger fs-5">❌ RED (${valorExibicao})</strong></div>`;
+                }
+
+                lista.innerHTML += `
+                    <div class="col-md-4 animate__animated animate__fadeIn">
+                        <div class="tracker-card p-3 shadow-sm h-100 d-flex flex-column" style="${ap.resultado ? 'opacity: 0.7;' : ''}">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <strong class="text-white fs-5">${ap.jogador}</strong>
+                                <button class="btn btn-sm text-secondary py-0 px-1" onclick="removerAposta(${ap.id})" title="Remover"><i class="bi bi-trash3"></i></button>
+                            </div>
+                            <div class="small texto-cinza mb-3">${ap.sugestao} <span class="text-white fw-bold">${ap.linha}</span> ${ap.mercado}</div>
+                            ${statusVisual}
+                        </div>
+                    </div>
+                `;
+            });
+            atualizarAoVivo();
+        }
+
+        function abrirFormManual() {
+            const divForm = document.getElementById('area-form-manual');
+            divForm.style.display = divForm.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function salvarManual() {
+            const jogador = document.getElementById('manual-jogador').value;
+            const mercado = document.getElementById('manual-mercado').value;
+            const linha = document.getElementById('manual-linha').value;
+            const sugestao = document.getElementById('manual-sugestao').value;
+            if(!jogador || !linha) { alert("O nome e a linha são obrigatórios!"); return; }
+            salvarAposta(jogador, mercado, parseFloat(linha), sugestao);
+            document.getElementById('manual-jogador').value = ''; document.getElementById('manual-linha').value = '';
+            abrirFormManual();
+        }
+
+        function salvarAposta(jogador, mercado, linha, sugestao) {
+            const novaAposta = { id: Date.now(), jogador, mercado, linha, sugestao, resultado: null };
+            minhasApostas.push(novaAposta);
+            localStorage.setItem('trackerNBA', JSON.stringify(minhasApostas));
+            renderizarTracker();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function removerAposta(id) {
+            minhasApostas = minhasApostas.filter(ap => ap.id !== id);
+            localStorage.setItem('trackerNBA', JSON.stringify(minhasApostas));
+            renderizarTracker();
+        }
+
+        function limparTracker() {
+            if(minhasApostas.length === 0) return;
+            if(confirm('Tem certeza que deseja apagar o bilhete de hoje sem computar resultados?')) {
+                minhasApostas = []; localStorage.removeItem('trackerNBA'); renderizarTracker();
+            }
+        }
+
+        function atualizarAoVivo() {
+            if(minhasApostas.length === 0) return;
+
+            fetch('/api/live', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ apostas: minhasApostas }) })
+            .then(res => res.json())
+            .then(dadosLive => {
+                let atualizouAlgumResultado = false;
+
+                minhasApostas.forEach(ap => {
+                    const info = dadosLive[ap.id];
+                    if(info && info.iniciado && !ap.resultado) { 
+                        const precisa = parseFloat(ap.linha);
+                        const fez = info.valor_atual;
+                        const jogoAcabou = info.status.includes("Final");
+                        
+                        let novoStatus = null;
+                        
+                        if (ap.sugestao === "MAIS DE" && fez > precisa) novoStatus = 'GREEN';
+                        else if (ap.sugestao === "MENOS DE" && fez > precisa) novoStatus = 'RED';
+                        else if (jogoAcabou) {
+                            if (ap.sugestao === "MAIS DE" && fez <= precisa) novoStatus = 'RED';
+                            if (ap.sugestao === "MENOS DE" && fez <= precisa) novoStatus = 'GREEN';
+                        }
+
+                        if (novoStatus) {
+                            ap.resultado = novoStatus;
+                            ap.valor_final = fez; 
+                            atualizouAlgumResultado = true;
+                        }
+
+                        if (!novoStatus) {
+                            const divLive = document.getElementById(`live-${ap.id}`);
+                            if(divLive) {
+                                const progresso = Math.min((fez / precisa) * 100, 100);
+                                // A VOLTA DOS NOMES QUADRA E BANCO AQUI:
+                                let iconeQuadra = info.em_quadra 
+                                    ? `<span class="badge bg-success ms-1"><i class="bi bi-fire"></i> Quadra</span>` 
+                                    : `<span class="badge bg-secondary ms-1"><i class="bi bi-pause-fill"></i> Banco</span>`;
+                                    
+                                divLive.innerHTML = `
+                                    <div class="d-flex justify-content-between align-items-center mb-1 small">
+                                        <span>Fez: <strong>${fez}</strong> / ${precisa}</span>
+                                        <div>${iconeQuadra} <span class="badge bg-dark text-warning ms-2">${info.status}</span></div>
+                                    </div>
+                                    <div class="progress" style="height: 8px; background-color: #000;">
+                                        <div class="progress-bar bg-primary progress-bar-striped progress-bar-animated" style="width: ${progresso}%"></div>
+                                    </div>
+                                `;
+                            }
+                        }
+                    }
+                });
+
+                if (atualizouAlgumResultado) {
+                    localStorage.setItem('trackerNBA', JSON.stringify(minhasApostas));
+                    renderizarTracker(); 
+                    verificarBilheteAuto(); 
+                }
+            })
+            .catch(err => console.error("Erro ao atualizar live:", err));
+        }
+
+        window.onload = () => { renderizarHistorico(); renderizarTracker(); };
+        setInterval(atualizarAoVivo, 15000); 
+
+        // --- LÓGICA DO ROBÔ (Sniper e Radar) ---
+        function montarCard(dados) {
+            let corSelo = dados.confianca >= 85 ? 'bg-success' : (dados.confianca >= 70 ? 'bg-warning text-dark' : 'bg-danger');
+            const argJogador = dados.jogador.replace(/'/g, "\\'");
+            const argMercado = dados.mercado.replace(/'/g, "\\'");
             return `
                 <div class="p-4 mt-3 animate__animated animate__fadeIn" style="background: rgba(20,20,20,0.8); border-radius: 12px; border-top: 4px solid #00ff88;">
                     <div class="d-flex justify-content-between align-items-center mb-1">
                         <h3 class="mb-0 fw-bold text-white">${dados.jogador}</h3>
                         <span class="badge ${corSelo} fs-5 shadow">${dados.confianca.toFixed(1)}% Score</span>
                     </div>
-                    
                     <p class="small text-warning mb-4 fw-bold">⚔️ Confronto: vs ${dados.adversario_encontrado || dados.partida}</p>
-
                     <h4 class="texto-destaque mb-3">🔥 ${dados.sugestao} ${dados.linha} ${dados.mercado}</h4>
-                    
-                    <div class="box-ia mb-4 shadow-sm">
-                        🤖 ${dados.explicacao}
-                    </div>
-
-                    <div class="d-flex justify-content-between small mb-1 texto-cinza">
-                        <span>Alto Risco</span>
-                        <span>Aposta Segura</span>
-                    </div>
-                    
-                    <div class="termometro-bg mb-3">
-                        <div class="termometro-fill" style="width: 0%;" id="barra-${dados.jogador.replace(/\s+/g, '')}"></div>
-                    </div>
-                    
-                    <p class="small mb-0 texto-cinza">Média 10 jogos: <strong class="text-white">${dados.media.toFixed(1)}</strong> | Histórico: <span class="font-monospace text-light">[${dados.historico.join(', ')}]</span></p>
-                </div>
-            `;
+                    <div class="box-ia mb-4 shadow-sm">🤖 ${dados.explicacao}</div>
+                    <div class="d-flex justify-content-between small mb-1 texto-cinza"><span>Alto Risco</span><span>Aposta Segura</span></div>
+                    <div class="termometro-bg mb-3"><div class="termometro-fill" style="width: 0%;" id="barra-${dados.jogador.replace(/\s+/g, '')}"></div></div>
+                    <p class="small mb-3 texto-cinza">Média 10 jogos: <strong class="text-white">${dados.media.toFixed(1)}</strong> | Histórico: <span class="font-monospace text-light">[${dados.historico.join(', ')}]</span></p>
+                    <button class="btn btn-save-tracker w-100 fw-bold py-2" onclick="salvarAposta('${argJogador}', '${argMercado}', ${dados.linha}, '${dados.sugestao}')"><i class="bi bi-pin-angle-fill me-1"></i> Adicionar ao Bilhete de Hoje</button>
+                </div>`;
         }
-
         function analisarSniper() {
-            const jogador = document.getElementById('sniper-jogador').value;
-            const mercado = document.getElementById('sniper-mercado').value;
-            const linha = document.getElementById('sniper-linha').value;
-
-            if(!jogador || !linha) { alert("Informe o jogador e a linha da Bet365!"); return; }
-
-            const divResultado = document.getElementById('resultado-sniper');
-            divResultado.style.display = 'block';
-            divResultado.innerHTML = `<h5 class="loading-pulse text-success mt-3 text-center">Buscando defesas e cruzando algoritmos...</h5>`;
-
-            fetch('/api/sniper', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ jogador, mercado, linha })
-            })
-            .then(res => res.json())
-            .then(dados => {
-                if(dados.erro) {
-                    divResultado.innerHTML = `<h5 class="text-danger mt-3 text-center">❌ ${dados.erro}</h5>`;
-                } else {
-                    divResultado.innerHTML = montarCard(dados);
-                    // Anima o termômetro com um pequeno atraso para dar um efeito "Uau"
-                    setTimeout(() => {
-                        document.getElementById(`barra-${dados.jogador.replace(/\s+/g, '')}`).style.width = `${dados.confianca}%`;
-                    }, 100);
-                }
-            })
-            .catch(err => divResultado.innerHTML = `<h5 class="text-danger mt-3">❌ Erro de conexão com a API.</h5>`);
+            const jogador = document.getElementById('sniper-jogador').value; const mercado = document.getElementById('sniper-mercado').value; const linha = document.getElementById('sniper-linha').value;
+            if(!jogador || !linha) { alert("Informe o jogador e a linha!"); return; }
+            const divResultado = document.getElementById('resultado-sniper'); divResultado.style.display = 'block'; divResultado.innerHTML = `<h5 class="loading-pulse text-success mt-3 text-center">Buscando defesas e cruzando algoritmos...</h5>`;
+            fetch('/api/sniper', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ jogador, mercado, linha }) })
+            .then(res => res.json()).then(dados => {
+                if(dados.erro) divResultado.innerHTML = `<h5 class="text-danger mt-3 text-center">❌ ${dados.erro}</h5>`;
+                else { divResultado.innerHTML = montarCard(dados); setTimeout(() => { document.getElementById(`barra-${dados.jogador.replace(/\s+/g, '')}`).style.width = `${dados.confianca}%`; }, 100); }
+            }).catch(err => divResultado.innerHTML = `<h5 class="text-danger mt-3">❌ Erro de conexão com a API.</h5>`);
         }
-
         function iniciarRadar() {
-            document.getElementById('area-botao-radar').style.display = 'none';
-            document.getElementById('loading').style.display = 'block';
-            document.getElementById('resultados').style.display = 'none';
-            document.getElementById('resultados').innerHTML = '';
-
-            fetch('/api/dados')
-                .then(response => response.json())
-                .then(apostas => {
-                    document.getElementById('loading').style.display = 'none';
-                    const container = document.getElementById('resultados');
-                    container.style.display = 'flex';
-
-                    if (apostas.length === 0) {
-                        container.innerHTML = `<div class="col-12 text-center animate__animated animate__fadeIn"><div class="p-5" style="background: rgba(20,20,20,0.8); border-radius: 16px;"><h4 class="text-warning mb-4">⚠️ O algoritmo não encontrou nenhuma entrada com Hit Rate acima de 70% neste momento.</h4><p class="texto-cinza">Isso significa que o mercado está perigoso ou as linhas ainda estão fechadas. Proteja sua banca e tente mais tarde.</p><button class="btn btn-outline-light mt-3" onclick="resetarRadar()">Voltar ao Início</button></div></div>`;
-                        return;
-                    }
-
-                    apostas.forEach((aposta, index) => {
-                        // Cria um delay em cascata para as cartas aparecerem uma depois da outra (efeito Matrix)
-                        const delay = index * 0.1;
-                        container.innerHTML += `
-                            <div class="col-md-6 animate__animated animate__fadeInUp" style="animation-delay: ${delay}s">
-                                ${montarCard(aposta)}
-                            </div>`;
-                    });
-
-                    // Preenche os termômetros do Radar depois de renderizar
-                    setTimeout(() => {
-                        apostas.forEach(aposta => {
-                            let barra = document.getElementById(`barra-${aposta.jogador.replace(/\s+/g, '')}`);
-                            if(barra) barra.style.width = `${aposta.confianca}%`;
-                        });
-                    }, 300);
-
-                    container.innerHTML += `<div class="col-12 text-center mt-5 mb-4 animate__animated animate__fadeIn" style="animation-delay: 1s"><button class="btn btn-outline-success rounded-pill px-4" onclick="resetarRadar()">🔄 Nova Varredura</button></div>`;
-                });
+            document.getElementById('area-botao-radar').style.display = 'none'; document.getElementById('loading').style.display = 'block'; document.getElementById('resultados').style.display = 'none'; document.getElementById('resultados').innerHTML = '';
+            fetch('/api/dados').then(response => response.json()).then(apostas => {
+                document.getElementById('loading').style.display = 'none'; const container = document.getElementById('resultados'); container.style.display = 'flex';
+                if (apostas.length === 0) { container.innerHTML = `<div class="col-12 text-center animate__animated animate__fadeIn"><div class="p-5" style="background: rgba(20,20,20,0.8); border-radius: 16px;"><h4 class="text-warning mb-4">⚠️ Nenhuma entrada segura no momento.</h4><button class="btn btn-outline-light mt-3" onclick="resetarRadar()">Voltar</button></div></div>`; return; }
+                apostas.forEach((aposta, index) => { const delay = index * 0.1; container.innerHTML += `<div class="col-md-6 animate__animated animate__fadeInUp" style="animation-delay: ${delay}s">${montarCard(aposta)}</div>`; });
+                setTimeout(() => { apostas.forEach(aposta => { let barra = document.getElementById(`barra-${aposta.jogador.replace(/\s+/g, '')}`); if(barra) barra.style.width = `${aposta.confianca}%`; }); }, 300);
+                container.innerHTML += `<div class="col-12 text-center mt-5 mb-4 animate__animated animate__fadeIn" style="animation-delay: 1s"><button class="btn btn-outline-success rounded-pill px-4" onclick="resetarRadar()">🔄 Nova Varredura</button></div>`;
+            });
         }
         function resetarRadar() { document.getElementById('resultados').style.display = 'none'; document.getElementById('area-botao-radar').style.display = 'block'; }
     </script>
