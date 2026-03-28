@@ -6,6 +6,7 @@ from nba_api.live.nba.endpoints import scoreboard, boxscore
 import time
 import google.generativeai as genai
 import os
+import json
 from dotenv import load_dotenv
 
 # Carrega as chaves do arquivo invisível .env
@@ -16,6 +17,10 @@ app = Flask(__name__)
 # PUXANDO AS CHAVES DE FORMA SEGURA
 CHAVE_ODDS_API = os.getenv('CHAVE_ODDS_API')
 CHAVE_GEMINI_IA = os.getenv('CHAVE_GEMINI_IA')
+
+# Tenta puxar a chave nova do Upstash. Se não achar, tenta a antiga do Vercel KV
+DB_URL = os.getenv('UPSTASH_REDIS_REST_URL') or os.getenv('KV_REST_API_URL')
+DB_TOKEN = os.getenv('UPSTASH_REDIS_REST_TOKEN') or os.getenv('KV_REST_API_TOKEN')
 
 # Ligando a IA do Google
 if CHAVE_GEMINI_IA:
@@ -305,6 +310,45 @@ def api_live():
     except Exception as e:
         print(f"Erro no Live Tracker: {e}")
         return jsonify({'erro': 'Falha ao buscar dados ao vivo'})
+
+# --- ROTAS DA NUVEM (UPSTASH / VERCEL KV) ---
+@app.route('/api/banco', methods=['GET'])
+def ler_banco():
+    if not DB_URL or not DB_TOKEN:
+        return jsonify({'tracker': [], 'historico': []})
+    
+    url = f"{DB_URL}/get/dados_juninho"
+    headers = {"Authorization": f"Bearer {DB_TOKEN}"}
+    
+    try:
+        resposta = requests.get(url, headers=headers).json()
+        if resposta.get('result'):
+            # O Upstash envia o JSON como string, precisamos converter
+            dados = json.loads(resposta['result'])
+            return jsonify(dados)
+    except Exception as e:
+        print(f"Erro ao ler nuvem: {e}")
+        
+    return jsonify({'tracker': [], 'historico': []})
+
+@app.route('/api/banco', methods=['POST'])
+def salvar_banco():
+    if not DB_URL or not DB_TOKEN:
+        return jsonify({'erro': 'Banco não configurado'})
+        
+    dados = request.json
+    url = f"{DB_URL}/set/dados_juninho"
+    headers = {
+        "Authorization": f"Bearer {DB_TOKEN}",
+        "Content-Type": "application/json"
+    }
+    
+    try:
+        requests.post(url, headers=headers, data=json.dumps(json.dumps(dados)))
+        return jsonify({'status': 'sucesso'})
+    except Exception as e:
+        print(f"Erro ao salvar na nuvem: {e}")
+        return jsonify({'erro': 'Falha na gravação'})
 
 if __name__ == '__main__':
     app.run(debug=True)

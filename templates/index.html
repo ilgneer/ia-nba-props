@@ -234,7 +234,7 @@
 
         // --- INICIALIZAÇÃO DA PÁGINA (Puxa da Nuvem primeiro) ---
         window.onload = () => {
-            document.getElementById('lista-historico').innerHTML = '<div class="text-center p-4"><div class="spinner-border text-info mb-2"></div><br><small class="texto-cinza">Sincronizando com a Nuvem Vercel KV...</small></div>';
+            document.getElementById('lista-historico').innerHTML = '<div class="text-center p-4"><div class="spinner-border text-info mb-2"></div><br><small class="texto-cinza">Sincronizando com a Nuvem...</small></div>';
             
             fetch('/api/banco')
                 .then(res => res.json())
@@ -311,6 +311,8 @@
                 const isGreen = ap.resultado === 'GREEN';
                 const classeCor = isGreen ? 'green' : 'red';
                 const iconeTexto = isGreen ? '<span class="text-success fw-bold">✅ Bateu</span>' : '<span class="text-danger fw-bold">❌ Red</span>';
+                
+                // Trata o undefined caso o registro seja antigo
                 const valorFinal = ap.valor_final !== undefined ? ap.valor_final : '--';
                 
                 divLista.innerHTML += `
@@ -359,9 +361,9 @@
             };
 
             historicoApostas.push(bilheteDiario);
-            minhasApostas = []; // Esvazia o bilhete de hoje
+            minhasApostas = []; 
             
-            salvarNaNuvem(); // Envia tudo para o banco online!
+            salvarNaNuvem(); 
             
             renderizarTracker();
             renderizarHistorico();
@@ -387,6 +389,7 @@
                         <div class="small texto-cinza">Aguardando placar ao vivo...</div>
                     </div>`;
 
+                // Garante que o número apareça bonitinho mesmo se for antigo
                 const valorExibicao = ap.valor_final !== undefined ? ap.valor_final : '--';
 
                 if (ap.resultado === 'GREEN') {
@@ -484,6 +487,7 @@
                             const divLive = document.getElementById(`live-${ap.id}`);
                             if(divLive) {
                                 const progresso = Math.min((fez / precisa) * 100, 100);
+                                // A volta do texto "Quadra" e "Banco" ao lado dos ícones
                                 let iconeQuadra = info.em_quadra 
                                     ? `<span class="badge bg-success ms-1"><i class="bi bi-fire"></i> Quadra</span>` 
                                     : `<span class="badge bg-secondary ms-1"><i class="bi bi-pause-fill"></i> Banco</span>`;
