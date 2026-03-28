@@ -49,13 +49,11 @@
         .stat-green { background: rgba(0, 255, 136, 0.1); border-color: #00ff88; }
         .stat-money { background: rgba(255, 204, 0, 0.1); border-color: #ffcc00; }
         
-        /* Estilos do Item de Histórico Clicável */
         .hist-item { background: #1a1c24; border-radius: 8px; padding: 15px; margin-bottom: 10px; border-left: 4px solid #333; cursor: pointer; transition: all 0.2s; }
         .hist-item:hover { transform: scale(1.01); background: #23252e; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
         .hist-green { border-left-color: #00ff88; }
         .hist-red { border-left-color: #ff3333; }
 
-        /* Estilos Especiais do Popup Modal */
         .modal-content.glass-modal { background: rgba(20, 20, 25, 0.95); backdrop-filter: blur(15px); border: 1px solid rgba(0, 255, 136, 0.3); border-radius: 20px; box-shadow: 0 0 40px rgba(0,0,0,0.8); }
         .selecao-detalhe { background: #0f1015; border-radius: 8px; padding: 12px; margin-bottom: 8px; border-left: 3px solid #333; }
         .selecao-detalhe.green { border-left-color: #00ff88; }
@@ -66,7 +64,7 @@
     <div class="container py-4">
         <div class="text-center mb-5 animate__animated animate__fadeInDown">
             <h1 class="fw-bold"><span class="texto-destaque">IA</span> NBA PROPS</h1>
-            <p class="texto-cinza text-uppercase tracking-wide small">Painel Autônomo & Cloud Sync</p>
+            <p class="texto-cinza text-uppercase tracking-wide small">Painel Autônomo & Cloud Sync SDK</p>
         </div>
 
         <div id="secao-historico" class="mb-5 p-4 animate__animated animate__fadeIn">
@@ -182,7 +180,6 @@
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body">
-            
             <div class="row text-center mb-4 mt-2">
                 <div class="col-6" style="border-right: 1px solid rgba(255,255,255,0.1);">
                     <h3 id="modal-placar" class="fw-bold mb-0"></h3>
@@ -193,11 +190,8 @@
                     <small class="texto-cinza text-uppercase">Resultado</small>
                 </div>
             </div>
-
             <h6 class="texto-destaque mb-3"><i class="bi bi-list-check"></i> Seleções do Bilhete:</h6>
-            <div id="modal-lista-selecoes" class="d-flex flex-column">
-                </div>
-
+            <div id="modal-lista-selecoes" class="d-flex flex-column"></div>
           </div>
         </div>
       </div>
@@ -206,12 +200,10 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        // BANCOS DE DADOS NA NUVEM
         let minhasApostas = [];
         let historicoApostas = [];
         const TABELA_PREMIOS = { 3: 10, 4: 20, 5: 40, 6: 80, 7: 150, 8: 300, 9: 500, 10: 1200 };
 
-        // --- SISTEMA DE SINCRONIZAÇÃO NUVEM ---
         function salvarNaNuvem() {
             document.getElementById('sync-status').innerText = "Salvando...";
             document.getElementById('sync-status').className = "badge bg-warning ms-2 small text-dark";
@@ -232,9 +224,8 @@
             });
         }
 
-        // --- INICIALIZAÇÃO DA PÁGINA (Puxa da Nuvem primeiro) ---
         window.onload = () => {
-            document.getElementById('lista-historico').innerHTML = '<div class="text-center p-4"><div class="spinner-border text-info mb-2"></div><br><small class="texto-cinza">Sincronizando com a Nuvem...</small></div>';
+            document.getElementById('lista-historico').innerHTML = '<div class="text-center p-4"><div class="spinner-border text-info mb-2"></div><br><small class="texto-cinza">Sincronizando Upstash...</small></div>';
             
             fetch('/api/banco')
                 .then(res => res.json())
@@ -253,7 +244,6 @@
                 });
         };
 
-        // --- DASHBOARD CAIXA E HISTÓRICO VISUAL ---
         function renderizarHistorico() {
             const divLista = document.getElementById('lista-historico');
             divLista.innerHTML = '';
@@ -292,7 +282,6 @@
             document.getElementById('stat-ganhos').innerText = creditosGanhos;
         }
 
-        // --- MÁGICA DO POPUP (MODAL) ---
         function abrirDetalhesBilhete(idBilhete) {
             const bilhete = historicoApostas.find(b => b.id === idBilhete);
             if(!bilhete) return;
@@ -311,8 +300,6 @@
                 const isGreen = ap.resultado === 'GREEN';
                 const classeCor = isGreen ? 'green' : 'red';
                 const iconeTexto = isGreen ? '<span class="text-success fw-bold">✅ Bateu</span>' : '<span class="text-danger fw-bold">❌ Red</span>';
-                
-                // Trata o undefined caso o registro seja antigo
                 const valorFinal = ap.valor_final !== undefined ? ap.valor_final : '--';
                 
                 divLista.innerHTML += `
@@ -340,7 +327,6 @@
             }
         }
 
-        // --- CÉREBRO AUTÔNOMO: RESOLVENDO APOSTAS SOZINHO ---
         function verificarBilheteAuto() {
             if (minhasApostas.length === 0) return;
             const todasProntas = minhasApostas.every(ap => ap.resultado !== null && ap.resultado !== undefined);
@@ -389,7 +375,6 @@
                         <div class="small texto-cinza">Aguardando placar ao vivo...</div>
                     </div>`;
 
-                // Garante que o número apareça bonitinho mesmo se for antigo
                 const valorExibicao = ap.valor_final !== undefined ? ap.valor_final : '--';
 
                 if (ap.resultado === 'GREEN') {
@@ -487,7 +472,6 @@
                             const divLive = document.getElementById(`live-${ap.id}`);
                             if(divLive) {
                                 const progresso = Math.min((fez / precisa) * 100, 100);
-                                // A volta do texto "Quadra" e "Banco" ao lado dos ícones
                                 let iconeQuadra = info.em_quadra 
                                     ? `<span class="badge bg-success ms-1"><i class="bi bi-fire"></i> Quadra</span>` 
                                     : `<span class="badge bg-secondary ms-1"><i class="bi bi-pause-fill"></i> Banco</span>`;
@@ -515,7 +499,6 @@
             .catch(err => console.error("Erro ao atualizar live:", err));
         }
 
-        // --- LÓGICA DO ROBÔ (Sniper e Radar) ---
         function montarCard(dados) {
             let corSelo = dados.confianca >= 85 ? 'bg-success' : (dados.confianca >= 70 ? 'bg-warning text-dark' : 'bg-danger');
             const argJogador = dados.jogador.replace(/'/g, "\\'");

@@ -8,19 +8,28 @@ import google.generativeai as genai
 import os
 import json
 from dotenv import load_dotenv
+from upstash_redis import Redis
 
-# Carrega as chaves do arquivo invisível (.env)
+# Carrega as chaves do arquivo invisível .env (apenas no seu PC)
 load_dotenv()
 
 app = Flask(__name__)
 
-# PUXANDO AS CHAVES DE FORMA SEGURA
+# PUXANDO AS CHAVES DE FORMA SEGURA (SEM EXPOR NO GITHUB)
 CHAVE_ODDS_API = os.getenv('CHAVE_ODDS_API')
 CHAVE_GEMINI_IA = os.getenv('CHAVE_GEMINI_IA')
 
-# Tenta puxar a chave nova do Upstash. Se não achar, tenta a antiga do Vercel KV
-DB_URL = os.getenv('UPSTASH_REDIS_REST_URL') or os.getenv('KV_REST_API_URL')
-DB_TOKEN = os.getenv('UPSTASH_REDIS_REST_TOKEN') or os.getenv('KV_REST_API_TOKEN')
+# Chaves do Upstash (Vercel KV)
+URL_BANCO = os.getenv('KV_REST_API_URL')
+TOKEN_BANCO = os.getenv('KV_REST_API_TOKEN')
+
+# Inicializa o Banco de Dados Oficial
+redis_db = None
+if URL_BANCO and TOKEN_BANCO:
+    try:
+        redis_db = Redis(url=URL_BANCO, token=TOKEN_BANCO)
+    except Exception as e:
+        print(f"Erro ao conectar no Upstash: {e}")
 
 # Ligando a IA do Google
 if CHAVE_GEMINI_IA:
@@ -311,43 +320,35 @@ def api_live():
         print(f"Erro no Live Tracker: {e}")
         return jsonify({'erro': 'Falha ao buscar dados ao vivo'})
 
-# --- ROTAS DA NUVEM (UPSTASH / VERCEL KV) ---
+# --- ROTAS DA NUVEM (USANDO O SDK OFICIAL UPSTASH) ---
 @app.route('/api/banco', methods=['GET'])
 def ler_banco():
-    if not DB_URL or not DB_TOKEN:
+    if not redis_db:
         return jsonify({'tracker': [], 'historico': []})
     
-    url = f"{DB_URL}/get/dados_juninho"
-    headers = {"Authorization": f"Bearer {DB_TOKEN}"}
-    
     try:
-        resposta = requests.get(url, headers=headers).json()
-        if resposta.get('result'):
-            # O Upstash envia o JSON como string, precisamos converter
-            dados = json.loads(resposta['result'])
+        dados = redis_db.get("dados_juninho")
+        if dados:
+            if isinstance(dados, str):
+                return jsonify(json.loads(dados))
             return jsonify(dados)
     except Exception as e:
-        print(f"Erro ao ler nuvem: {e}")
+        print(f"Erro ao ler nuvem oficial: {e}")
         
     return jsonify({'tracker': [], 'historico': []})
 
 @app.route('/api/banco', methods=['POST'])
 def salvar_banco():
-    if not DB_URL or not DB_TOKEN:
+    if not redis_db:
         return jsonify({'erro': 'Banco não configurado'})
         
     dados = request.json
-    url = f"{DB_URL}/set/dados_juninho"
-    headers = {
-        "Authorization": f"Bearer {DB_TOKEN}",
-        "Content-Type": "application/json"
-    }
-    
     try:
-        requests.post(url, headers=headers, data=json.dumps(json.dumps(dados)))
+        # Salva convertendo para texto JSON (padrão Redis)
+        redis_db.set("dados_juninho", json.dumps(dados))
         return jsonify({'status': 'sucesso'})
     except Exception as e:
-        print(f"Erro ao salvar na nuvem: {e}")
+        print(f"Erro ao salvar na nuvem oficial: {e}")
         return jsonify({'erro': 'Falha na gravação'})
 
 if __name__ == '__main__':

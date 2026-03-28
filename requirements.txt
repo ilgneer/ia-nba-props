@@ -4,3 +4,5 @@ nba_api==1.4.1
 google-generativeai==0.4.1
 python-dotenv==1.0.1
 pandas==2.1.1
+upstash-redis
+
