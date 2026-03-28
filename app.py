@@ -290,6 +290,7 @@ def api_sniper():
 
 @app.route('/api/live', methods=['POST'])
 def api_live():
+    from datetime import datetime, timezone
     dados = request.json
     apostas = dados.get('apostas', [])
     if not apostas: return jsonify({})
@@ -300,9 +301,24 @@ def api_live():
         jogos = board.games.get_dict()
         jogadores_ativos = {}
         
+        agora = datetime.now(timezone.utc)
+        
         for jogo in jogos:
             status = jogo['gameStatus']
             texto_status = jogo['gameStatusText']
+            
+            # --- FILTRO ANTI-FANTASMA DA MADRUGADA ---
+            try:
+                # Lê a hora exata que o jogo começou na vida real
+                horario_jogo = datetime.strptime(jogo['gameTimeUTC'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc)
+                horas_passadas = (agora - horario_jogo).total_seconds() / 3600
+                
+                # Se o jogo já acabou e começou há mais de 8 horas, é sucata de ontem. Ignora!
+                if status == 3 and horas_passadas > 8:
+                    continue
+            except Exception as e:
+                pass
+            # -----------------------------------------
             
             if status in [2, 3]:
                 try:
@@ -336,7 +352,6 @@ def api_live():
             nome_digitado = aposta['jogador']
             mercado_ap = aposta['mercado']
             
-            # Busca inteligente conectada ao Live Tracker!
             nome_correto = encontrar_jogador_flexivel(nome_digitado, nomes_ativos)
             
             if nome_correto:
