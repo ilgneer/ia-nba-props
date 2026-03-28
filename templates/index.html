@@ -66,12 +66,12 @@
     <div class="container py-4">
         <div class="text-center mb-5 animate__animated animate__fadeInDown">
             <h1 class="fw-bold"><span class="texto-destaque">IA</span> NBA PROPS</h1>
-            <p class="texto-cinza text-uppercase tracking-wide small">Painel Autônomo & Gestão de Acumuladores</p>
+            <p class="texto-cinza text-uppercase tracking-wide small">Painel Autônomo & Cloud Sync</p>
         </div>
 
         <div id="secao-historico" class="mb-5 p-4 animate__animated animate__fadeIn">
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h3 class="text-white fw-bold mb-0"><i class="bi bi-wallet2 text-warning"></i> Meu Caixa Bet365</h3>
+                <h3 class="text-white fw-bold mb-0"><i class="bi bi-wallet2 text-warning"></i> Meu Caixa Bet365 <span id="sync-status" class="badge bg-success ms-2 small" style="font-size:0.6rem;">NUVEM OK</span></h3>
                 <button class="btn btn-sm btn-outline-secondary" onclick="limparHistorico()"><i class="bi bi-trash3"></i> Zerar Histórico</button>
             </div>
             
@@ -206,10 +206,52 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        // BANCOS DE DADOS
-        let minhasApostas = JSON.parse(localStorage.getItem('trackerNBA')) || [];
-        let historicoApostas = JSON.parse(localStorage.getItem('historicoNBA')) || [];
+        // BANCOS DE DADOS NA NUVEM
+        let minhasApostas = [];
+        let historicoApostas = [];
         const TABELA_PREMIOS = { 3: 10, 4: 20, 5: 40, 6: 80, 7: 150, 8: 300, 9: 500, 10: 1200 };
+
+        // --- SISTEMA DE SINCRONIZAÇÃO NUVEM ---
+        function salvarNaNuvem() {
+            document.getElementById('sync-status').innerText = "Salvando...";
+            document.getElementById('sync-status').className = "badge bg-warning ms-2 small text-dark";
+            
+            fetch('/api/banco', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tracker: minhasApostas, historico: historicoApostas })
+            })
+            .then(() => {
+                document.getElementById('sync-status').innerText = "NUVEM OK";
+                document.getElementById('sync-status').className = "badge bg-success ms-2 small";
+            })
+            .catch(err => {
+                console.error("Erro ao sincronizar com a nuvem:", err);
+                document.getElementById('sync-status').innerText = "ERRO NUVEM";
+                document.getElementById('sync-status').className = "badge bg-danger ms-2 small";
+            });
+        }
+
+        // --- INICIALIZAÇÃO DA PÁGINA (Puxa da Nuvem primeiro) ---
+        window.onload = () => {
+            document.getElementById('lista-historico').innerHTML = '<div class="text-center p-4"><div class="spinner-border text-info mb-2"></div><br><small class="texto-cinza">Sincronizando com a Nuvem Vercel KV...</small></div>';
+            
+            fetch('/api/banco')
+                .then(res => res.json())
+                .then(dados => {
+                    minhasApostas = dados.tracker || [];
+                    historicoApostas = dados.historico || [];
+                    
+                    renderizarHistorico(); 
+                    renderizarTracker();
+                    setInterval(atualizarAoVivo, 15000); 
+                })
+                .catch(err => {
+                    console.error("Erro ao puxar dados da nuvem:", err);
+                    renderizarHistorico();
+                    renderizarTracker();
+                });
+        };
 
         // --- DASHBOARD CAIXA E HISTÓRICO VISUAL ---
         function renderizarHistorico() {
@@ -221,7 +263,7 @@
             let creditosGanhos = 0;
 
             if (totalEntradas === 0) {
-                divLista.innerHTML = '<div class="text-center small texto-cinza py-3">O seu caixa está vazio. Comece a jogar!</div>';
+                divLista.innerHTML = '<div class="text-center small texto-cinza py-3">O seu caixa na nuvem está vazio. Comece a jogar!</div>';
             } else {
                 [...historicoApostas].reverse().forEach(bilhete => {
                     if(bilhete.isWin) { totalVitorias++; creditosGanhos += bilhete.premio; }
@@ -255,7 +297,6 @@
             const bilhete = historicoApostas.find(b => b.id === idBilhete);
             if(!bilhete) return;
 
-            // Preenche o Cabeçalho
             document.getElementById('modal-data').innerText = bilhete.data;
             document.getElementById('modal-placar').innerText = `${bilhete.greens}/${bilhete.total}`;
             document.getElementById('modal-placar').className = bilhete.isWin ? "fw-bold mb-0 text-success" : "fw-bold mb-0 text-danger";
@@ -263,7 +304,6 @@
             document.getElementById('modal-premio').innerText = `R$ ${bilhete.premio}`;
             document.getElementById('modal-premio').className = bilhete.isWin ? "fw-bold mb-0 text-warning" : "fw-bold mb-0 text-secondary";
 
-            // Preenche as Seleções Detalhadas
             const divLista = document.getElementById('modal-lista-selecoes');
             divLista.innerHTML = '';
 
@@ -271,8 +311,6 @@
                 const isGreen = ap.resultado === 'GREEN';
                 const classeCor = isGreen ? 'green' : 'red';
                 const iconeTexto = isGreen ? '<span class="text-success fw-bold">✅ Bateu</span>' : '<span class="text-danger fw-bold">❌ Red</span>';
-                
-                // REDE DE SEGURANÇA CONTRA O UNDEFINED DOS DADOS ANTIGOS
                 const valorFinal = ap.valor_final !== undefined ? ap.valor_final : '--';
                 
                 divLista.innerHTML += `
@@ -289,13 +327,14 @@
                 `;
             });
 
-            // Abre o Popup na Tela
             new bootstrap.Modal(document.getElementById('modalBilhete')).show();
         }
 
         function limparHistorico() {
-            if(confirm('Zerar todo o seu histórico e ganhos?')) {
-                historicoApostas = []; localStorage.removeItem('historicoNBA'); renderizarHistorico();
+            if(confirm('Zerar todo o seu histórico na nuvem e ganhos?')) {
+                historicoApostas = []; 
+                salvarNaNuvem();
+                renderizarHistorico();
             }
         }
 
@@ -320,11 +359,10 @@
             };
 
             historicoApostas.push(bilheteDiario);
-            localStorage.setItem('historicoNBA', JSON.stringify(historicoApostas));
-
-            minhasApostas = [];
-            localStorage.setItem('trackerNBA', JSON.stringify(minhasApostas));
-
+            minhasApostas = []; // Esvazia o bilhete de hoje
+            
+            salvarNaNuvem(); // Envia tudo para o banco online!
+            
             renderizarTracker();
             renderizarHistorico();
             
@@ -349,7 +387,6 @@
                         <div class="small texto-cinza">Aguardando placar ao vivo...</div>
                     </div>`;
 
-                // REDE DE SEGURANÇA CONTRA UNDEFINED NA RENDERIZAÇÃO DO RADAR
                 const valorExibicao = ap.valor_final !== undefined ? ap.valor_final : '--';
 
                 if (ap.resultado === 'GREEN') {
@@ -393,21 +430,23 @@
         function salvarAposta(jogador, mercado, linha, sugestao) {
             const novaAposta = { id: Date.now(), jogador, mercado, linha, sugestao, resultado: null };
             minhasApostas.push(novaAposta);
-            localStorage.setItem('trackerNBA', JSON.stringify(minhasApostas));
+            salvarNaNuvem();
             renderizarTracker();
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         function removerAposta(id) {
             minhasApostas = minhasApostas.filter(ap => ap.id !== id);
-            localStorage.setItem('trackerNBA', JSON.stringify(minhasApostas));
+            salvarNaNuvem();
             renderizarTracker();
         }
 
         function limparTracker() {
             if(minhasApostas.length === 0) return;
             if(confirm('Tem certeza que deseja apagar o bilhete de hoje sem computar resultados?')) {
-                minhasApostas = []; localStorage.removeItem('trackerNBA'); renderizarTracker();
+                minhasApostas = []; 
+                salvarNaNuvem();
+                renderizarTracker();
             }
         }
 
@@ -445,7 +484,6 @@
                             const divLive = document.getElementById(`live-${ap.id}`);
                             if(divLive) {
                                 const progresso = Math.min((fez / precisa) * 100, 100);
-                                // A VOLTA DOS NOMES QUADRA E BANCO AQUI:
                                 let iconeQuadra = info.em_quadra 
                                     ? `<span class="badge bg-success ms-1"><i class="bi bi-fire"></i> Quadra</span>` 
                                     : `<span class="badge bg-secondary ms-1"><i class="bi bi-pause-fill"></i> Banco</span>`;
@@ -465,16 +503,13 @@
                 });
 
                 if (atualizouAlgumResultado) {
-                    localStorage.setItem('trackerNBA', JSON.stringify(minhasApostas));
+                    salvarNaNuvem();
                     renderizarTracker(); 
                     verificarBilheteAuto(); 
                 }
             })
             .catch(err => console.error("Erro ao atualizar live:", err));
         }
-
-        window.onload = () => { renderizarHistorico(); renderizarTracker(); };
-        setInterval(atualizarAoVivo, 15000); 
 
         // --- LÓGICA DO ROBÔ (Sniper e Radar) ---
         function montarCard(dados) {
