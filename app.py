@@ -7,6 +7,7 @@ import time
 import google.generativeai as genai
 import os
 import json
+import unicodedata
 from dotenv import load_dotenv
 from upstash_redis import Redis
 
@@ -15,7 +16,7 @@ load_dotenv()
 
 app = Flask(__name__)
 
-# PUXANDO AS CHAVES DE FORMA SEGURA (SEM EXPOR NO GITHUB)
+# PUXANDO AS CHAVES DE FORMA SEGURA
 CHAVE_ODDS_API = os.getenv('CHAVE_ODDS_API')
 CHAVE_GEMINI_IA = os.getenv('CHAVE_GEMINI_IA')
 
@@ -46,6 +47,38 @@ MAPA_MERCADOS = {
     'player_blocks': {'coluna': 'BLK', 'nome': 'Tocos'},
     'player_steals': {'coluna': 'STL', 'nome': 'Roubos'}
 }
+
+# --- MOTOR DE BUSCA FLEXÍVEL (ANTI-ARRILIA) ---
+def limpar_nome(nome):
+    """Remove acentos, pontos e deixa tudo minúsculo"""
+    return unicodedata.normalize('NFD', str(nome)).encode('ascii', 'ignore').decode('utf-8').lower().strip()
+
+def encontrar_jogador_flexivel(nome_digitado, lista_jogadores, chave_nome=None):
+    busca = limpar_nome(nome_digitado)
+    busca_termos = busca.replace('.', ' ').split() # "n. jokic" vira ["n", "jokic"]
+    
+    possiveis = []
+    for p in lista_jogadores:
+        # Se for dicionario (NBA API), usa a chave. Se for string (Live Tracker), usa direto.
+        nome_db = limpar_nome(p[chave_nome]) if chave_nome else limpar_nome(p)
+        
+        # 1. Match Exato (já sem acento)
+        if busca == nome_db:
+            return p
+            
+        # 2. Match Parcial Inteligente (Todos os pedaços digitados estão no nome real)
+        if all(termo in nome_db for termo in busca_termos):
+            possiveis.append(p)
+            
+    if possiveis:
+        # Se achou vários e for dados da NBA, prioriza quem ainda joga (is_active)
+        if chave_nome and 'is_active' in possiveis[0]:
+            ativos = [p for p in possiveis if p.get('is_active')]
+            if ativos: return ativos[0]
+        return possiveis[0] # Retorna o primeiro que achar
+        
+    return None
+# ----------------------------------------------
 
 def gerar_relatorio_ia(nome_jogador, nome_mercado, linha, sugestao, media, historico, adversario, confianca_base):
     if not model:
@@ -122,7 +155,8 @@ def buscar_analises():
                 
                 if id_processamento in jogadores_processados or tipo_aposta != 'Over': continue
                 jogadores_processados.append(id_processamento)
-                jogador_info = next((p for p in nba_players if p['full_name'] == nome_jogador), None)
+                
+                jogador_info = encontrar_jogador_flexivel(nome_jogador, nba_players, 'full_name')
                 if not jogador_info: continue
                 
                 try:
@@ -149,7 +183,7 @@ def buscar_analises():
                     
                     if confianca > 80.0 and taxa_acerto >= 70.0:
                         analises_finais.append({
-                            'jogador': nome_jogador,
+                            'jogador': jogador_info['full_name'], # Usa o nome limpo da API
                             'partida': partida_nome,
                             'mercado': nome_bonito,
                             'linha': linha_casa,
@@ -187,8 +221,11 @@ def api_sniper():
     nome_bonito = MAPA_MERCADOS[chave_mercado]['nome']
     
     nba_players = players.get_players()
-    jogador_info = next((p for p in nba_players if p['full_name'].lower() == nome_jogador.lower().strip()), None)
-    if not jogador_info: return jsonify({'erro': f'Jogador "{nome_jogador}" não encontrado.'})
+    
+    # Busca inteligente conectada aqui!
+    jogador_info = encontrar_jogador_flexivel(nome_jogador, nba_players, 'full_name')
+    if not jogador_info: 
+        return jsonify({'erro': f'Jogador "{nome_jogador}" não encontrado. Tente outro nome.'})
         
     try:
         info_nba = commonplayerinfo.CommonPlayerInfo(player_id=jogador_info['id']).get_data_frames()[0]
@@ -237,7 +274,7 @@ def api_sniper():
         confianca_final = min(max(confianca_final, 0.0), 99.0)
         
         return jsonify({
-            'jogador': jogador_info['full_name'],
+            'jogador': jogador_info['full_name'], # Retorna o nome certinho com acento!
             'mercado': nome_bonito,
             'linha': linha,
             'sugestao': recomendacao,
@@ -274,8 +311,8 @@ def api_live():
                     todos_jogadores = dados_jogo['homeTeam']['players'] + dados_jogo['awayTeam']['players']
                     
                     for p in todos_jogadores:
-                        nome = p['name'].lower().strip()
-                        jogadores_ativos[nome] = {
+                        nome_exato_boxscore = p['name']
+                        jogadores_ativos[nome_exato_boxscore] = {
                             'status_jogo': texto_status,
                             'stats': p['statistics'],
                             'em_quadra': str(p.get('oncourt', '0')) == '1'
@@ -291,14 +328,19 @@ def api_live():
             'Tocos': 'blocks',
             'Roubos': 'steals'
         }
+        
+        nomes_ativos = list(jogadores_ativos.keys())
 
         for aposta in apostas:
             id_ap = str(aposta['id'])
-            nome_ap = aposta['jogador'].lower().strip()
+            nome_digitado = aposta['jogador']
             mercado_ap = aposta['mercado']
             
-            if nome_ap in jogadores_ativos:
-                dados_jog = jogadores_ativos[nome_ap]
+            # Busca inteligente conectada ao Live Tracker!
+            nome_correto = encontrar_jogador_flexivel(nome_digitado, nomes_ativos)
+            
+            if nome_correto:
+                dados_jog = jogadores_ativos[nome_correto]
                 chave_stat = mapa_stats.get(mercado_ap, 'points')
                 valor_atual = dados_jog['stats'].get(chave_stat, 0)
                 
@@ -320,7 +362,6 @@ def api_live():
         print(f"Erro no Live Tracker: {e}")
         return jsonify({'erro': 'Falha ao buscar dados ao vivo'})
 
-# --- ROTAS DA NUVEM (USANDO O SDK OFICIAL UPSTASH) ---
 @app.route('/api/banco', methods=['GET'])
 def ler_banco():
     if not redis_db:
@@ -333,7 +374,7 @@ def ler_banco():
                 return jsonify(json.loads(dados))
             return jsonify(dados)
     except Exception as e:
-        print(f"Erro ao ler nuvem oficial: {e}")
+        print(f"Erro ao ler nuvem: {e}")
         
     return jsonify({'tracker': [], 'historico': []})
 
@@ -344,11 +385,10 @@ def salvar_banco():
         
     dados = request.json
     try:
-        # Salva convertendo para texto JSON (padrão Redis)
         redis_db.set("dados_juninho", json.dumps(dados))
         return jsonify({'status': 'sucesso'})
     except Exception as e:
-        print(f"Erro ao salvar na nuvem oficial: {e}")
+        print(f"Erro ao salvar na nuvem: {e}")
         return jsonify({'erro': 'Falha na gravação'})
 
 if __name__ == '__main__':
