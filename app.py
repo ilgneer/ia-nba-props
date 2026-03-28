@@ -9,7 +9,7 @@ import os
 import json
 from dotenv import load_dotenv
 
-# Carrega as chaves do arquivo invisível .env
+# Carrega as chaves do arquivo invisível (.env)
 load_dotenv()
 
 app = Flask(__name__)
