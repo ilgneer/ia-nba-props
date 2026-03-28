@@ -66,7 +66,10 @@
         <div class="row mb-4">
             <div class="col-md-6 animate__animated animate__fadeInLeft">
                 <div class="secao-stats secao-vip h-100">
-                    <h5 class="text-warning fw-bold"><i class="bi bi-star-fill"></i> Caixa VIP (Real)</h5>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h5 class="text-warning fw-bold mb-0"><i class="bi bi-star-fill"></i> Caixa VIP (Real)</h5>
+                        <button class="btn btn-sm btn-outline-secondary py-0" onclick="limparHistorico('VIP')" title="Zerar Histórico VIP"><i class="bi bi-trash"></i></button>
+                    </div>
                     <div class="row g-2 mt-2">
                         <div class="col-4"><div class="stat-box"><h4 class="text-info fw-bold mb-0" id="stat-vip-entradas">0</h4><small class="texto-cinza" style="font-size: 0.7rem;">BILHETES</small></div></div>
                         <div class="col-4"><div class="stat-box"><h4 class="text-success fw-bold mb-0" id="stat-vip-vitorias">0</h4><small class="texto-cinza" style="font-size: 0.7rem;">GREENS</small></div></div>
@@ -76,11 +79,14 @@
             </div>
             <div class="col-md-6 animate__animated animate__fadeInRight mt-3 mt-md-0">
                 <div class="secao-stats secao-mais-menos h-100">
-                    <h5 class="text-info fw-bold"><i class="bi bi-tools"></i> Desempenho +/- (Testes)</h5>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h5 class="text-info fw-bold mb-0"><i class="bi bi-tools"></i> Desempenho +/- (Testes)</h5>
+                        <button class="btn btn-sm btn-outline-secondary py-0" onclick="limparHistorico('MAIS_MENOS')" title="Zerar Histórico +/-"><i class="bi bi-trash"></i></button>
+                    </div>
                     <div class="row g-2 mt-2">
                         <div class="col-4"><div class="stat-box"><h4 class="text-info fw-bold mb-0" id="stat-mm-entradas">0</h4><small class="texto-cinza" style="font-size: 0.7rem;">BILHETES</small></div></div>
                         <div class="col-4"><div class="stat-box"><h4 class="text-success fw-bold mb-0" id="stat-mm-vitorias">0</h4><small class="texto-cinza" style="font-size: 0.7rem;">GREENS</small></div></div>
-                        <div class="col-4"><div class="stat-box d-flex align-items-center justify-content-center h-100"><button class="btn btn-sm btn-outline-secondary w-100" onclick="limparHistorico()"><i class="bi bi-trash3"></i> Zerar Histórico</button></div></div>
+                        <div class="col-4"><div class="stat-box"><h4 class="text-info fw-bold mb-0">R$<span id="stat-mm-ganhos">0</span></h4><small class="texto-cinza" style="font-size: 0.7rem;">SIMULADO</small></div></div>
                     </div>
                 </div>
             </div>
@@ -112,14 +118,14 @@
 
             <div class="row">
                 <div class="col-md-6">
-                    <div class="carrinho-box">
+                    <div class="carrinho-box border-warning border-opacity-50">
                         <h6 class="text-warning fw-bold mb-2">💎 Rascunho VIP</h6>
                         <div id="lista-rascunho-vip" class="mb-3" style="min-height: 50px;"></div>
                         <button class="btn btn-warning btn-sm w-100 fw-bold" onclick="registrarBilhete('VIP')">Registrar Entrada VIP <i class="bi bi-arrow-right-circle"></i></button>
                     </div>
                 </div>
                 <div class="col-md-6 mt-3 mt-md-0">
-                    <div class="carrinho-box border-info">
+                    <div class="carrinho-box border-info border-opacity-50">
                         <h6 class="text-info fw-bold mb-2">🛠️ Rascunho +/-</h6>
                         <div id="lista-rascunho-mm" class="mb-3" style="min-height: 50px;"></div>
                         <button class="btn btn-info btn-sm w-100 fw-bold text-dark" onclick="registrarBilhete('MAIS_MENOS')">Registrar Entrada +/- <i class="bi bi-arrow-right-circle"></i></button>
@@ -196,12 +202,9 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        // --- ESTRUTURA DE DADOS NOVA ---
+        // --- ESTRUTURA DE DADOS ---
         let rascunhoVIP = [];
         let rascunhoMaisMenos = [];
-        
-        // Em vez de jogadores soltos, agora temos BILHETES
-        // Formato: { id: 123, tipo: 'VIP', selecoes: [ {jogador, linha...}, ... ] }
         let bilhetesAtivos = []; 
         let historicoApostas = [];
         
@@ -229,7 +232,6 @@
                 let dadosTrackerLoad = dados.tracker || [];
                 historicoApostas = dados.historico || [];
                 
-                // MODO DE MIGRAÇÃO: Se os dados da nuvem forem do modelo velho (jogadores soltos), agrupa num bilhete pra não quebrar
                 if(dadosTrackerLoad.length > 0 && dadosTrackerLoad[0].jogador) {
                     let ativosAntigosVIP = dadosTrackerLoad.filter(a => a.tipo === 'RADAR' || a.tipo === 'VIP');
                     let ativosAntigosMM = dadosTrackerLoad.filter(a => a.tipo !== 'RADAR' && a.tipo !== 'VIP');
@@ -237,10 +239,9 @@
                     if(ativosAntigosVIP.length > 0) bilhetesAtivos.push({ id: Date.now(), tipo: 'VIP', selecoes: ativosAntigosVIP });
                     if(ativosAntigosMM.length > 0) bilhetesAtivos.push({ id: Date.now()+1, tipo: 'MAIS_MENOS', selecoes: ativosAntigosMM });
                 } else {
-                    bilhetesAtivos = dadosTrackerLoad; // Já é o modelo novo de bilhetes agrupados
+                    bilhetesAtivos = dadosTrackerLoad; 
                 }
                 
-                // Arrumando nomes velhos no histórico para não quebrar as contas
                 historicoApostas.forEach(b => {
                     if(b.tipo === 'RADAR') b.tipo = 'VIP';
                     if(b.tipo === 'TESTE' || b.tipo === 'MANUAL') b.tipo = 'MAIS_MENOS';
@@ -256,7 +257,6 @@
             });
         };
 
-        // --- ATUALIZA ESTATÍSTICAS ISOLADAS ---
         function renderizarHistorico() {
             let statsVIP = { entradas: 0, vitorias: 0, lucro: 0 };
             let statsMM = { entradas: 0, vitorias: 0, lucro: 0 };
@@ -265,19 +265,18 @@
             divLista.innerHTML = '';
 
             if (historicoApostas.length === 0) {
-                divLista.innerHTML = '<div class="text-center small texto-cinza py-3">O seu caixa na nuvem está vazio.</div>';
+                divLista.innerHTML = '<div class="text-center small texto-cinza py-3">Nenhum bilhete resolvido ainda.</div>';
             } else {
                 [...historicoApostas].reverse().forEach(bilhete => {
-                    // Contabiliza isolado
                     let s = bilhete.tipo === 'VIP' ? statsVIP : statsMM;
                     s.entradas++;
                     if(bilhete.isWin) {
                         s.vitorias++;
-                        if(bilhete.tipo === 'VIP') s.lucro += bilhete.premio; // Lucro $$ só conta no VIP
+                        s.lucro += bilhete.premio; 
                     }
                     
                     const classeBorda = bilhete.isWin ? 'hist-green' : 'hist-red';
-                    const corGrana = bilhete.isWin ? 'text-warning' : 'texto-cinza';
+                    const corGrana = bilhete.isWin ? (bilhete.tipo === 'VIP' ? 'text-warning' : 'text-info') : 'texto-cinza';
                     const badgeTipo = bilhete.tipo === 'VIP' 
                         ? '<span class="badge bg-warning text-dark ms-2"><i class="bi bi-star"></i> VIP</span>' 
                         : '<span class="badge bg-info text-dark ms-2"><i class="bi bi-tools"></i> +/-</span>';
@@ -288,22 +287,30 @@
                                 <div class="text-white fw-bold"><i class="bi bi-calendar3 texto-cinza me-2"></i>${bilhete.data} ${badgeTipo}</div>
                             </div>
                             <div class="text-center"><span class="badge ${bilhete.isWin ? 'bg-success' : 'bg-danger'} fs-6 px-3">${bilhete.greens}/${bilhete.total}</span></div>
-                            <div class="text-end fw-bold fs-5 ${corGrana}">R$ ${bilhete.tipo === 'VIP' ? bilhete.premio : '0 (Teste)'}</div>
+                            <div class="text-end fw-bold fs-5 ${corGrana}">R$ ${bilhete.premio}</div>
                         </div>
                     `;
                 });
             }
 
-            // Plota na tela nos painéis separados
             document.getElementById('stat-vip-entradas').innerText = statsVIP.entradas;
             document.getElementById('stat-vip-vitorias').innerText = statsVIP.vitorias;
             document.getElementById('stat-vip-ganhos').innerText = statsVIP.lucro;
 
             document.getElementById('stat-mm-entradas').innerText = statsMM.entradas;
             document.getElementById('stat-mm-vitorias').innerText = statsMM.vitorias;
+            document.getElementById('stat-mm-ganhos').innerText = statsMM.lucro;
         }
 
-        // --- SISTEMA DE RASCUNHO (CARRINHO) ---
+        function limparHistorico(tipo) {
+            let nomeAlvo = tipo === 'VIP' ? 'VIP (Real)' : '+/- (Testes)';
+            if(confirm(`Tem certeza que deseja zerar APENAS o histórico ${nomeAlvo}?`)) {
+                historicoApostas = historicoApostas.filter(b => b.tipo !== tipo); 
+                salvarNaNuvem();
+                renderizarHistorico();
+            }
+        }
+
         function renderizarRascunhos() {
             function desenharLista(lista, divId, cor) {
                 const div = document.getElementById(divId);
@@ -313,9 +320,10 @@
                     return;
                 }
                 lista.forEach((ap, index) => {
+                    const htmlConfianca = ap.confianca ? `<span class="badge border border-${cor} text-${cor} ms-1" style="background:transparent; font-size: 0.65rem;">${ap.confianca.toFixed(0)}%</span>` : '';
                     div.innerHTML += `
-                        <div class="carrinho-item d-flex justify-content-between align-items-center">
-                            <div><strong>${ap.jogador}</strong> <br> <span class="texto-cinza">${ap.sugestao} ${ap.linha} ${ap.mercado}</span></div>
+                        <div class="carrinho-item d-flex justify-content-between align-items-center border-start border-${cor}">
+                            <div><strong>${ap.jogador}</strong> ${htmlConfianca}<br> <span class="texto-cinza">${ap.sugestao} ${ap.linha} ${ap.mercado}</span></div>
                             <button class="btn btn-sm text-danger px-2" onclick="removerDoRascunho(${index}, '${divId}')"><i class="bi bi-trash"></i></button>
                         </div>
                     `;
@@ -349,7 +357,6 @@
             document.getElementById('manual-jogador').value = ''; document.getElementById('manual-linha').value = '';
         }
 
-        // --- REGISTRO DO BILHETE (JOGA DO RASCUNHO PRO AO VIVO) ---
         function registrarBilhete(tipo) {
             let listaAlvo = tipo === 'VIP' ? rascunhoVIP : rascunhoMaisMenos;
             if(listaAlvo.length === 0) { alert("Adicione seleções ao rascunho antes de registrar a entrada!"); return; }
@@ -358,22 +365,19 @@
                 id: Date.now(),
                 tipo: tipo,
                 status: 'ABERTO',
-                selecoes: [...listaAlvo] // Copia os itens
+                selecoes: [...listaAlvo] 
             };
 
             bilhetesAtivos.push(novoBilhete);
             
-            // Limpa o rascunho
             if(tipo === 'VIP') rascunhoVIP = [];
             else rascunhoMaisMenos = [];
 
             salvarNaNuvem();
             renderizarRascunhos();
             renderizarTrackerAoVivo();
-            alert("Entrada Registrada! Acompanhe no Tracker Ao Vivo abaixo.");
         }
 
-        // --- RENDERIZADOR DO TRACKER (EM ACORDEÃO AGRUPADO) ---
         function toggleBilhete(id) {
             const body = document.getElementById(`bilhete-body-${id}`);
             body.classList.toggle('show');
@@ -381,7 +385,7 @@
 
         function limparTrackerAoVivo() {
             if(bilhetesAtivos.length === 0) return;
-            if(confirm("Deseja CANCELAR todos os bilhetes em andamento? (Isso não afeta o Histórico)")) {
+            if(confirm("Deseja CANCELAR todos os bilhetes em andamento?")) {
                 bilhetesAtivos = [];
                 salvarNaNuvem();
                 renderizarTrackerAoVivo();
@@ -446,11 +450,9 @@
             atualizarAoVivo();
         }
 
-        // --- CÉREBRO QUE VERIFICA OS RESULTADOS ---
         function atualizarAoVivo() {
             if(bilhetesAtivos.length === 0) return;
             
-            // Extrai a lista plana de apostas só para mandar pra API da NBA
             let todasApostasLisas = [];
             bilhetesAtivos.forEach(b => b.selecoes.forEach(s => { s.id = s.id_selecao; todasApostasLisas.push(s); }));
 
@@ -539,7 +541,7 @@
                         else alert(`🤖 ENTRADA ${avisoNome} QUEBROU. Placar: ${greens}/${total}.`);
                     }, 500);
                 } else {
-                    sobraram.push(bilhete); // Se não acabou os jogos, continua aberto
+                    sobraram.push(bilhete); 
                 }
             });
 
@@ -559,8 +561,8 @@
             document.getElementById('modal-data').innerText = bilhete.data;
             document.getElementById('modal-placar').innerText = `${bilhete.greens}/${bilhete.total}`;
             document.getElementById('modal-placar').className = bilhete.isWin ? "fw-bold mb-0 text-success" : "fw-bold mb-0 text-danger";
-            document.getElementById('modal-premio').innerText = `R$ ${bilhete.tipo === 'VIP' ? bilhete.premio : '0 (Teste)'}`;
-            document.getElementById('modal-premio').className = bilhete.isWin ? "fw-bold mb-0 text-warning" : "fw-bold mb-0 text-secondary";
+            document.getElementById('modal-premio').innerText = `R$ ${bilhete.premio}`;
+            document.getElementById('modal-premio').className = bilhete.isWin ? (bilhete.tipo === 'VIP' ? "fw-bold mb-0 text-warning" : "fw-bold mb-0 text-info") : "fw-bold mb-0 text-secondary";
 
             const divLista = document.getElementById('modal-lista-selecoes');
             divLista.innerHTML = '';
@@ -568,10 +570,12 @@
                 const isGreen = ap.resultado === 'GREEN';
                 const classeCor = isGreen ? 'green' : 'red';
                 const iconeTexto = isGreen ? '<span class="text-success fw-bold">✅ Bateu</span>' : '<span class="text-danger fw-bold">❌ Red</span>';
+                const confiancaHtml = ap.confianca ? `<span class="badge bg-dark text-info border border-info ms-2">${parseFloat(ap.confianca).toFixed(1)}%</span>` : '';
+                
                 divLista.innerHTML += `
                     <div class="selecao-detalhe ${classeCor} d-flex justify-content-between align-items-center">
                         <div>
-                            <strong class="text-white fs-6">${ap.jogador}</strong>
+                            <strong class="text-white fs-6">${ap.jogador}</strong> ${confiancaHtml}
                             <div class="small texto-cinza">Aposta: ${ap.sugestao} <span class="text-white fw-bold">${ap.linha}</span> ${ap.mercado}</div>
                         </div>
                         <div class="text-end">${iconeTexto}<br><span class="small" style="color: ${isGreen ? '#00ff88' : '#ff3333'};">Fez ${ap.valor_final || '--'}</span></div>
@@ -580,7 +584,6 @@
             new bootstrap.Modal(document.getElementById('modalBilhete')).show();
         }
 
-        // --- INTEGRAÇÃO COM RADAR E SNIPER ---
         function montarCard(dados) {
             let corSelo = dados.confianca >= 85 ? 'bg-success' : (dados.confianca >= 70 ? 'bg-warning text-dark' : 'bg-danger');
             const argJogador = dados.jogador.replace(/'/g, "\\'");
