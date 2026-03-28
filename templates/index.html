@@ -554,23 +554,28 @@
         }
 
         function abrirDetalhesBilhete(idBilhete) {
-            const bilhete = historicoApostas.find(b => b.id === idBilhete);
+            // Usando parseInt para ignorar casas decimais e garantir que sempre encontre o bilhete!
+            const bilhete = historicoApostas.find(b => parseInt(b.id) === parseInt(idBilhete));
             if(!bilhete) return;
 
             document.getElementById('modal-titulo-tipo').innerHTML = bilhete.tipo === 'VIP' ? '<i class="bi bi-star-fill text-warning"></i> Bilhete VIP Fechado' : '<i class="bi bi-tools text-info"></i> Bilhete +/- Fechado';
             document.getElementById('modal-data').innerText = bilhete.data;
             document.getElementById('modal-placar').innerText = `${bilhete.greens}/${bilhete.total}`;
             document.getElementById('modal-placar').className = bilhete.isWin ? "fw-bold mb-0 text-success" : "fw-bold mb-0 text-danger";
-            document.getElementById('modal-premio').innerText = `R$ ${bilhete.premio}`;
+            document.getElementById('modal-premio').innerText = `R$ ${bilhete.tipo === 'VIP' ? bilhete.premio : '0 (Teste)'}`;
             document.getElementById('modal-premio').className = bilhete.isWin ? (bilhete.tipo === 'VIP' ? "fw-bold mb-0 text-warning" : "fw-bold mb-0 text-info") : "fw-bold mb-0 text-secondary";
 
             const divLista = document.getElementById('modal-lista-selecoes');
             divLista.innerHTML = '';
+            
             bilhete.selecoes.forEach(ap => {
                 const isGreen = ap.resultado === 'GREEN';
                 const classeCor = isGreen ? 'green' : 'red';
                 const iconeTexto = isGreen ? '<span class="text-success fw-bold">✅ Bateu</span>' : '<span class="text-danger fw-bold">❌ Red</span>';
                 const confiancaHtml = ap.confianca ? `<span class="badge bg-dark text-info border border-info ms-2">${parseFloat(ap.confianca).toFixed(1)}%</span>` : '';
+                
+                // Correção de código: garante que o número 0 (zero) seja mostrado na tela
+                const valorFez = (ap.valor_final !== undefined && ap.valor_final !== null) ? ap.valor_final : '--';
                 
                 divLista.innerHTML += `
                     <div class="selecao-detalhe ${classeCor} d-flex justify-content-between align-items-center">
@@ -578,10 +583,14 @@
                             <strong class="text-white fs-6">${ap.jogador}</strong> ${confiancaHtml}
                             <div class="small texto-cinza">Aposta: ${ap.sugestao} <span class="text-white fw-bold">${ap.linha}</span> ${ap.mercado}</div>
                         </div>
-                        <div class="text-end">${iconeTexto}<br><span class="small" style="color: ${isGreen ? '#00ff88' : '#ff3333'};">Fez ${ap.valor_final || '--'}</span></div>
+                        <div class="text-end">${iconeTexto}<br><span class="small" style="color: ${isGreen ? '#00ff88' : '#ff3333'};">Fez ${valorFez}</span></div>
                     </div>`;
             });
-            new bootstrap.Modal(document.getElementById('modalBilhete')).show();
+            
+            // Força a abertura do Modal usando o padrão sólido do Bootstrap
+            const modalEl = document.getElementById('modalBilhete');
+            const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+            modal.show();
         }
 
         function montarCard(dados) {
