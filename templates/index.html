@@ -28,7 +28,6 @@
         .loading-pulse { animation: pulse-op 1.5s infinite; }
         @keyframes pulse-op { 0% { opacity: 0.6; } 50% { opacity: 1; text-shadow: 0 0 10px #00ff88; } 100% { opacity: 0.6; } }
 
-        /* Estilos Isolados para VIP e +/- */
         .secao-stats { background: rgba(20,20,20,0.8); border: 1px solid #333; border-radius: 16px; padding: 20px; margin-bottom: 20px; }
         .secao-vip { border-top: 4px solid #ffcc00; }
         .secao-mais-menos { border-top: 4px solid #00ccff; }
@@ -38,7 +37,6 @@
         .carrinho-box { border: 1px dashed #555; border-radius: 12px; padding: 15px; background: #16181f; }
         .carrinho-item { background: #0a0b0e; border-left: 3px solid #00ff88; border-radius: 6px; padding: 10px; margin-bottom: 8px; font-size: 0.9rem; }
         
-        /* Acordeão de Bilhetes Ao Vivo */
         .bilhete-grupo { background: #1a1c24; border: 1px solid #333; border-radius: 12px; margin-bottom: 15px; overflow: hidden; }
         .bilhete-header { padding: 15px; background: #23252e; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #111; }
         .bilhete-header:hover { background: #2a2c36; }
@@ -142,8 +140,7 @@
             
             <div id="mensagem-vazio-tracker" class="text-center p-3 texto-cinza" style="display: none;">Nenhuma entrada ativa no momento. Monte e registre um bilhete acima.</div>
             
-            <div id="lista-bilhetes-ativos">
-                </div>
+            <div id="lista-bilhetes-ativos"></div>
         </div>
 
         <div class="card card-aposta p-4 mb-5 animate__animated animate__fadeInUp">
@@ -196,7 +193,10 @@
                 </div>
             </div>
             <h6 class="texto-destaque mb-3"><i class="bi bi-list-check"></i> Seleções da Entrada:</h6>
-            <div id="modal-lista-selecoes" class="d-flex flex-column"></div>
+            <div id="modal-lista-selecoes" class="d-flex flex-column mb-3"></div>
+          </div>
+          <div class="modal-footer border-top border-secondary border-opacity-25 pt-3">
+              <button type="button" class="btn btn-outline-info w-100 fw-bold" id="btn-clonar-historico"><i class="bi bi-copy"></i> Copiar Seleções para o Rascunho</button>
           </div>
         </div>
       </div>
@@ -360,6 +360,34 @@
             document.getElementById('manual-jogador').value = ''; document.getElementById('manual-linha').value = '';
         }
 
+        // --- NOVA FUNÇÃO CLONAR BILHETE ---
+        function clonarParaRascunho(idBilhete) {
+            // Procura o bilhete nos ativos ou no histórico
+            let bilheteAlvo = bilhetesAtivos.find(b => parseInt(b.id) === parseInt(idBilhete));
+            if (!bilheteAlvo) {
+                bilheteAlvo = historicoApostas.find(b => parseInt(b.id) === parseInt(idBilhete));
+            }
+            if (!bilheteAlvo) return;
+            
+            // Clona seleção por seleção pro rascunho correspondente
+            bilheteAlvo.selecoes.forEach(sel => {
+                adicionarAoRascunho(sel.jogador, sel.mercado, sel.linha, sel.sugestao, sel.confianca, bilheteAlvo.tipo);
+            });
+            
+            // Se estiver com o modal aberto, fecha ele
+            const modalEl = document.getElementById('modalBilhete');
+            if(modalEl) {
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                if(modal) modal.hide();
+            }
+            
+            // Rola pro topo suavemente
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            
+            const nomeDraft = bilheteAlvo.tipo === 'VIP' ? 'VIP' : '+/-';
+            alert(`✅ ${bilheteAlvo.selecoes.length} seleções copiadas com sucesso para o Rascunho ${nomeDraft}!`);
+        }
+
         function registrarBilhete(tipo) {
             let listaAlvo = tipo === 'VIP' ? rascunhoVIP : rascunhoMaisMenos;
             if(listaAlvo.length === 0) { alert("Adicione seleções ao rascunho antes de registrar a entrada!"); return; }
@@ -440,7 +468,8 @@
                         <div class="bilhete-header" onclick="toggleBilhete(${bilhete.id})">
                             <div class="fw-bold fs-5">${icone} <span class="text-white">#${String(bilhete.id).slice(-4)}</span> ${textoPlacar}</div>
                             <div>
-                                <span class="badge bg-dark border border-secondary text-light me-3">${qtd} Jogos</span>
+                                <span class="badge bg-dark border border-secondary text-light me-2">${qtd} Jogos</span>
+                                <button class="btn btn-sm btn-outline-info py-0 px-2 me-1" onclick="event.stopPropagation(); clonarParaRascunho(${bilhete.id})" title="Copiar p/ Rascunho"><i class="bi bi-copy"></i></button>
                                 <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="event.stopPropagation(); apagarBilheteUnico(${bilhete.id})"><i class="bi bi-trash"></i></button>
                             </div>
                         </div>
@@ -557,15 +586,14 @@
         }
 
         function abrirDetalhesBilhete(idBilhete) {
-            // Usando parseInt para ignorar casas decimais e garantir que sempre encontre o bilhete!
             const bilhete = historicoApostas.find(b => parseInt(b.id) === parseInt(idBilhete));
             if(!bilhete) return;
 
-            document.getElementById('modal-titulo-tipo').innerHTML = bilhete.tipo === 'VIP' ? '<i class="bi bi-star-fill text-warning"></i> Bilhete VIP Fechado' : '<i class="bi bi-tools text-info"></i> Bilhete +/- Fechado';
+            document.getElementById('modal-titulo-tipo').innerHTML = bilhete.tipo === 'VIP' ? '<i class="bi bi-star-fill text-warning"></i> Bilhete VIP' : '<i class="bi bi-tools text-info"></i> Bilhete +/-';
             document.getElementById('modal-data').innerText = bilhete.data;
             document.getElementById('modal-placar').innerText = `${bilhete.greens}/${bilhete.total}`;
             document.getElementById('modal-placar').className = bilhete.isWin ? "fw-bold mb-0 text-success" : "fw-bold mb-0 text-danger";
-            document.getElementById('modal-premio').innerText = `R$ ${bilhete.tipo === 'VIP' ? bilhete.premio : '0 (Teste)'}`;
+            document.getElementById('modal-premio').innerText = `R$ ${bilhete.premio}`;
             document.getElementById('modal-premio').className = bilhete.isWin ? (bilhete.tipo === 'VIP' ? "fw-bold mb-0 text-warning" : "fw-bold mb-0 text-info") : "fw-bold mb-0 text-secondary";
 
             const divLista = document.getElementById('modal-lista-selecoes');
@@ -576,8 +604,6 @@
                 const classeCor = isGreen ? 'green' : 'red';
                 const iconeTexto = isGreen ? '<span class="text-success fw-bold">✅ Bateu</span>' : '<span class="text-danger fw-bold">❌ Red</span>';
                 const confiancaHtml = ap.confianca ? `<span class="badge bg-dark text-info border border-info ms-2">${parseFloat(ap.confianca).toFixed(1)}%</span>` : '';
-                
-                // Correção de código: garante que o número 0 (zero) seja mostrado na tela
                 const valorFez = (ap.valor_final !== undefined && ap.valor_final !== null) ? ap.valor_final : '--';
                 
                 divLista.innerHTML += `
@@ -590,7 +616,9 @@
                     </div>`;
             });
             
-            // Força a abertura do Modal usando o padrão sólido do Bootstrap
+            // Atrela a ação de clonar ao botão do rodapé do modal
+            document.getElementById('btn-clonar-historico').onclick = function() { clonarParaRascunho(idBilhete); };
+            
             const modalEl = document.getElementById('modalBilhete');
             const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
             modal.show();

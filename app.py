@@ -302,30 +302,23 @@ def api_live():
         jogadores_ativos = {}
         
         agora = datetime.now(timezone.utc)
-        
-        # Lista de nomes que você está rastreando no momento
-        nomes_no_tracker = [limpar_nome(a['jogador']) for a in apostas]
 
         for jogo in jogos:
             status = jogo['gameStatus']
             texto_status = jogo['gameStatusText']
             
-            # --- FILTRO ANTI-FANTASMA EVOLUÍDO ---
+            # --- FILTRO MÃO DE FERRO (ANTI-FOGUETE RETROATIVO) ---
             try:
                 horario_jogo = datetime.strptime(jogo['gameTimeUTC'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc)
                 horas_passadas = (agora - horario_jogo).total_seconds() / 3600
                 
-                # Só ignoramos se o jogo for antigo E nenhum jogador do seu bilhete estiver nele
-                if status == 3 and horas_passadas > 12:
-                    # Verifica se algum dos seus jogadores estava nesse jogo específico
-                    bx_temp = boxscore.BoxScore(jogo['gameId']).game.get_dict()
-                    jogadores_no_jogo = [limpar_nome(p['name']) for p in bx_temp['homeTeam']['players'] + bx_temp['awayTeam']['players']]
-                    
-                    # Se nenhum jogador seu está aqui, aí sim a gente pula o jogo
-                    if not any(nome in jogadores_no_jogo for nome in nomes_no_tracker):
-                        continue
+                # Se o jogo começou há mais de 15 horas, ele é lixo histórico. 
+                # Ignoramos 100%, mesmo que o jogador esteja lá.
+                if horas_passadas > 15:
+                    continue
             except:
                 pass
+            # ----------------------------------------------------
             
             if status in [2, 3]:
                 try:
