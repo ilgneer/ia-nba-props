@@ -303,22 +303,29 @@ def api_live():
         
         agora = datetime.now(timezone.utc)
         
+        # Lista de nomes que você está rastreando no momento
+        nomes_no_tracker = [limpar_nome(a['jogador']) for a in apostas]
+
         for jogo in jogos:
             status = jogo['gameStatus']
             texto_status = jogo['gameStatusText']
             
-            # --- FILTRO ANTI-FANTASMA DA MADRUGADA ---
+            # --- FILTRO ANTI-FANTASMA EVOLUÍDO ---
             try:
-                # Lê a hora exata que o jogo começou na vida real
                 horario_jogo = datetime.strptime(jogo['gameTimeUTC'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc)
                 horas_passadas = (agora - horario_jogo).total_seconds() / 3600
                 
-                # Se o jogo já acabou e começou há mais de 8 horas, é sucata de ontem. Ignora!
-                if status == 3 and horas_passadas > 8:
-                    continue
-            except Exception as e:
+                # Só ignoramos se o jogo for antigo E nenhum jogador do seu bilhete estiver nele
+                if status == 3 and horas_passadas > 12:
+                    # Verifica se algum dos seus jogadores estava nesse jogo específico
+                    bx_temp = boxscore.BoxScore(jogo['gameId']).game.get_dict()
+                    jogadores_no_jogo = [limpar_nome(p['name']) for p in bx_temp['homeTeam']['players'] + bx_temp['awayTeam']['players']]
+                    
+                    # Se nenhum jogador seu está aqui, aí sim a gente pula o jogo
+                    if not any(nome in jogadores_no_jogo for nome in nomes_no_tracker):
+                        continue
+            except:
                 pass
-            # -----------------------------------------
             
             if status in [2, 3]:
                 try:
@@ -327,8 +334,8 @@ def api_live():
                     todos_jogadores = dados_jogo['homeTeam']['players'] + dados_jogo['awayTeam']['players']
                     
                     for p in todos_jogadores:
-                        nome_exato_boxscore = p['name']
-                        jogadores_ativos[nome_exato_boxscore] = {
+                        nome_exato = p['name']
+                        jogadores_ativos[nome_exato] = {
                             'status_jogo': texto_status,
                             'stats': p['statistics'],
                             'em_quadra': str(p.get('oncourt', '0')) == '1'
@@ -337,12 +344,8 @@ def api_live():
                     continue
 
         mapa_stats = {
-            'Pontos': 'points',
-            'Rebotes': 'reboundsTotal',
-            'Assistências': 'assists',
-            'Cestas de 3': 'threePointersMade',
-            'Tocos': 'blocks',
-            'Roubos': 'steals'
+            'Pontos': 'points', 'Rebotes': 'reboundsTotal', 'Assistências': 'assists',
+            'Cestas de 3': 'threePointersMade', 'Tocos': 'blocks', 'Roubos': 'steals'
         }
         
         nomes_ativos = list(jogadores_ativos.keys())
