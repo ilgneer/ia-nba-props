@@ -307,18 +307,11 @@ def api_live():
             status = jogo['gameStatus']
             texto_status = jogo['gameStatusText']
             
-            # --- FILTRO MÃO DE FERRO (ANTI-FOGUETE RETROATIVO) ---
+            # Filtro anti-fantasma (15h)
             try:
                 horario_jogo = datetime.strptime(jogo['gameTimeUTC'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc)
-                horas_passadas = (agora - horario_jogo).total_seconds() / 3600
-                
-                # Se o jogo começou há mais de 15 horas, ele é lixo histórico. 
-                # Ignoramos 100%, mesmo que o jogador esteja lá.
-                if horas_passadas > 15:
-                    continue
-            except:
-                pass
-            # ----------------------------------------------------
+                if (agora - horario_jogo).total_seconds() / 3600 > 15: continue
+            except: pass
             
             if status in [2, 3]:
                 try:
@@ -327,8 +320,7 @@ def api_live():
                     todos_jogadores = dados_jogo['homeTeam']['players'] + dados_jogo['awayTeam']['players']
                     
                     for p in todos_jogadores:
-                        nome_exato = p['name']
-                        jogadores_ativos[nome_exato] = {
+                        jogadores_ativos[p['name']] = {
                             'status_jogo': texto_status,
                             'stats': p['statistics'],
                             'em_quadra': str(p.get('oncourt', '0')) == '1'
@@ -340,16 +332,54 @@ def api_live():
             'Pontos': 'points', 'Rebotes': 'reboundsTotal', 'Assistências': 'assists',
             'Cestas de 3': 'threePointersMade', 'Tocos': 'blocks', 'Roubos': 'steals'
         }
-        
         nomes_ativos = list(jogadores_ativos.keys())
 
         for aposta in apostas:
             id_ap = str(aposta['id'])
             nome_digitado = aposta['jogador']
             mercado_ap = aposta['mercado']
-            
+
+            # ---> NOVA LÓGICA: VENCEDOR DA PARTIDA (MONEYLINE) <---
+            if mercado_ap == 'Vencedor':
+                busca_clean = limpar_nome(nome_digitado)
+                encontrou_time = False
+                
+                for jogo in jogos:
+                    try:
+                        horario_jogo = datetime.strptime(jogo['gameTimeUTC'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc)
+                        if (agora - horario_jogo).total_seconds() / 3600 > 15: continue
+                    except: pass
+                    
+                    t_casa = limpar_nome(jogo['homeTeam']['teamName'])
+                    c_casa = limpar_nome(jogo['homeTeam']['teamCity'])
+                    t_fora = limpar_nome(jogo['awayTeam']['teamName'])
+                    c_fora = limpar_nome(jogo['awayTeam']['teamCity'])
+                    
+                    # Sistema inteligente que entende "BOS Celtics", só "Celtics" ou "Boston"
+                    eh_casa = (t_casa in busca_clean) or (c_casa in busca_clean)
+                    eh_fora = (t_fora in busca_clean) or (c_fora in busca_clean)
+                    
+                    if eh_casa or eh_fora:
+                        encontrou_time = True
+                        placar_casa = jogo['homeTeam']['score']
+                        placar_fora = jogo['awayTeam']['score']
+                        
+                        resultados[id_ap] = {
+                            'iniciado': True,
+                            'status': jogo['gameStatusText'],
+                            'valor_atual': placar_casa if eh_casa else placar_fora,      # Pontos do nosso time
+                            'placar_adversario': placar_fora if eh_casa else placar_casa, # Pontos do rival
+                            'em_quadra': True
+                        }
+                        break
+                        
+                if not encontrou_time:
+                    resultados[id_ap] = {'iniciado': False, 'status': "Aguardando início", 'valor_atual': 0}
+                continue # Termina a lógica do time aqui e vai para a próxima aposta!
+            # --------------------------------------------------------
+
+            # Lógica Original para Jogadores (Props)
             nome_correto = encontrar_jogador_flexivel(nome_digitado, nomes_ativos)
-            
             if nome_correto:
                 dados_jog = jogadores_ativos[nome_correto]
                 chave_stat = mapa_stats.get(mercado_ap, 'points')

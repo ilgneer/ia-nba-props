@@ -95,11 +95,16 @@
             <h4 class="text-white fw-bold mb-3"><i class="bi bi-cart-plus"></i> Montagem de Entradas (Rascunho)</h4>
             
             <div class="row g-2 mb-4">
-                <div class="col-md-3"><input type="text" id="manual-jogador" class="form-control form-control-sm" placeholder="Jogador"></div>
+                <div class="col-md-3"><input type="text" id="manual-jogador" class="form-control form-control-sm" placeholder="Jogador ou Time (ex: Celtics)"></div>
                 <div class="col-md-3">
-                    <select id="manual-mercado" class="form-select form-select-sm">
-                        <option value="Pontos">Pontos</option><option value="Rebotes">Rebotes</option><option value="Assistências">Assistências</option>
-                        <option value="Cestas de 3">Cestas de 3</option><option value="Tocos">Tocos</option><option value="Roubos">Roubos</option>
+                    <select id="manual-mercado" class="form-select form-select-sm" onchange="verificarMercadoManual()">
+                        <option value="Pontos">Pontos</option>
+                        <option value="Rebotes">Rebotes</option>
+                        <option value="Assistências">Assistências</option>
+                        <option value="Cestas de 3">Cestas de 3</option>
+                        <option value="Tocos">Tocos</option>
+                        <option value="Roubos">Roubos</option>
+                        <option value="Vencedor" class="fw-bold text-warning">🏆 Vencedor da Partida</option>
                     </select>
                 </div>
                 <div class="col-md-2"><input type="number" step="0.5" id="manual-linha" class="form-control form-control-sm" placeholder="Linha"></div>
@@ -122,12 +127,8 @@
                         <div id="lista-rascunho-vip" class="mb-3" style="min-height: 50px;"></div>
                         
                         <div class="row g-2 mb-3">
-                            <div class="col-6">
-                                <input type="number" step="0.01" id="vip-odd" class="form-control form-control-sm bg-dark text-warning border-warning" placeholder="Odd Total (ex: 3.50)">
-                            </div>
-                            <div class="col-6">
-                                <input type="number" step="1" id="vip-valor" class="form-control form-control-sm bg-dark text-success border-success" placeholder="Valor R$ (ex: 20)">
-                            </div>
+                            <div class="col-6"><input type="number" step="0.01" id="vip-odd" class="form-control form-control-sm bg-dark text-warning border-warning" placeholder="Odd Total (ex: 21.05)"></div>
+                            <div class="col-6"><input type="number" step="1" id="vip-valor" class="form-control form-control-sm bg-dark text-success border-success" placeholder="Valor R$ (ex: 20)"></div>
                         </div>
 
                         <button class="btn btn-warning btn-sm w-100 fw-bold" onclick="registrarBilhete('VIP')">Registrar Entrada VIP <i class="bi bi-arrow-right-circle"></i></button>
@@ -179,7 +180,6 @@
             <h5 class="fw-bold mb-3"><i class="bi bi-clock-history"></i> Histórico de Bilhetes Resolvidos</h5>
             <div id="lista-historico" style="max-height: 400px; overflow-y: auto; overflow-x: hidden; padding-right: 5px;"></div>
         </div>
-
     </div>
 
     <div class="modal fade" id="modalBilhete" tabindex="-1" aria-hidden="true">
@@ -216,29 +216,18 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        // --- ESTRUTURA DE DADOS ---
         let rascunhoVIP = [];
         let rascunhoMaisMenos = [];
         let bilhetesAtivos = []; 
         let historicoApostas = [];
-        
         const TABELA_PREMIOS = { 3: 10, 4: 20, 5: 40, 6: 80, 7: 150, 8: 300, 9: 500, 10: 1200 };
 
         function salvarNaNuvem() {
             document.getElementById('sync-status').innerText = "Salvando...";
             document.getElementById('sync-status').className = "badge bg-warning ms-2 small text-dark";
-            
-            fetch('/api/banco', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ tracker: bilhetesAtivos, historico: historicoApostas })
-            }).then(() => {
-                document.getElementById('sync-status').innerText = "NUVEM OK";
-                document.getElementById('sync-status').className = "badge bg-success ms-2 small";
-            }).catch(err => {
-                document.getElementById('sync-status').innerText = "ERRO NUVEM";
-                document.getElementById('sync-status').className = "badge bg-danger ms-2 small";
-            });
+            fetch('/api/banco', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tracker: bilhetesAtivos, historico: historicoApostas }) })
+            .then(() => { document.getElementById('sync-status').innerText = "NUVEM OK"; document.getElementById('sync-status').className = "badge bg-success ms-2 small"; })
+            .catch(() => { document.getElementById('sync-status').innerText = "ERRO NUVEM"; document.getElementById('sync-status').className = "badge bg-danger ms-2 small"; });
         }
 
         window.onload = () => {
@@ -249,34 +238,19 @@
                 if(dadosTrackerLoad.length > 0 && dadosTrackerLoad[0].jogador) {
                     let ativosAntigosVIP = dadosTrackerLoad.filter(a => a.tipo === 'RADAR' || a.tipo === 'VIP');
                     let ativosAntigosMM = dadosTrackerLoad.filter(a => a.tipo !== 'RADAR' && a.tipo !== 'VIP');
-                    
                     if(ativosAntigosVIP.length > 0) bilhetesAtivos.push({ id: Date.now(), tipo: 'VIP', selecoes: ativosAntigosVIP });
                     if(ativosAntigosMM.length > 0) bilhetesAtivos.push({ id: Date.now()+1, tipo: 'MAIS_MENOS', selecoes: ativosAntigosMM });
-                } else {
-                    bilhetesAtivos = dadosTrackerLoad; 
-                }
+                } else { bilhetesAtivos = dadosTrackerLoad; }
                 
-                historicoApostas.forEach(b => {
-                    if(b.tipo === 'RADAR') b.tipo = 'VIP';
-                    if(b.tipo === 'TESTE' || b.tipo === 'MANUAL') b.tipo = 'MAIS_MENOS';
-                });
-
-                renderizarHistorico(); 
-                renderizarRascunhos();
-                renderizarTrackerAoVivo();
-                setInterval(atualizarAoVivo, 15000); 
-            }).catch(err => {
-                renderizarHistorico();
-                renderizarTrackerAoVivo();
-            });
+                historicoApostas.forEach(b => { if(b.tipo === 'RADAR') b.tipo = 'VIP'; if(b.tipo === 'TESTE' || b.tipo === 'MANUAL') b.tipo = 'MAIS_MENOS'; });
+                renderizarHistorico(); renderizarRascunhos(); renderizarTrackerAoVivo(); setInterval(atualizarAoVivo, 15000); 
+            }).catch(err => { renderizarHistorico(); renderizarTrackerAoVivo(); });
         };
 
         function renderizarHistorico() {
             let statsVIP = { entradas: 0, vitorias: 0, lucroLiquido: 0 };
             let statsMM = { entradas: 0, vitorias: 0, lucro: 0 };
-
-            const divLista = document.getElementById('lista-historico');
-            divLista.innerHTML = '';
+            const divLista = document.getElementById('lista-historico'); divLista.innerHTML = '';
 
             if (historicoApostas.length === 0) {
                 divLista.innerHTML = '<div class="text-center small texto-cinza py-3">Nenhum bilhete resolvido ainda.</div>';
@@ -286,192 +260,131 @@
                     s.entradas++;
                     
                     if (bilhete.tipo === 'VIP') {
-                        // Para VIP, o prêmio já foi salvo como positivo (lucro líquido) ou negativo (perda)
                         s.lucroLiquido += (bilhete.premio || 0);
                         if(bilhete.isWin) s.vitorias++;
                     } else {
-                        if(bilhete.isWin) {
-                            s.vitorias++;
-                            s.lucro += bilhete.premio; 
-                        }
+                        if(bilhete.isWin) { s.vitorias++; s.lucro += bilhete.premio; }
                     }
                     
                     const classeBorda = bilhete.isWin ? 'hist-green' : 'hist-red';
-                    // Se for VIP e prêmio for maior que 0 é verde, menor que 0 é vermelho.
                     const corGrana = bilhete.tipo === 'VIP' ? (bilhete.premio > 0 ? 'text-success' : 'text-danger') : (bilhete.isWin ? 'text-info' : 'texto-cinza');
-                    const badgeTipo = bilhete.tipo === 'VIP' 
-                        ? '<span class="badge bg-warning text-dark ms-2"><i class="bi bi-star"></i> VIP</span>' 
-                        : '<span class="badge bg-info text-dark ms-2"><i class="bi bi-tools"></i> +/-</span>';
-
+                    const badgeTipo = bilhete.tipo === 'VIP' ? '<span class="badge bg-warning text-dark ms-2"><i class="bi bi-star"></i> VIP</span>' : '<span class="badge bg-info text-dark ms-2"><i class="bi bi-tools"></i> +/-</span>';
                     let sinal = (bilhete.tipo === 'VIP' && bilhete.premio > 0) ? '+' : '';
                     let valorExibir = bilhete.tipo === 'VIP' ? bilhete.premio.toFixed(2) : bilhete.premio;
 
                     divLista.innerHTML += `
                         <div class="hist-item ${classeBorda} d-flex justify-content-between align-items-center" onclick="abrirDetalhesBilhete(${bilhete.id})">
-                            <div class="d-flex align-items-center gap-3">
-                                <div class="text-white fw-bold"><i class="bi bi-calendar3 texto-cinza me-2"></i>${bilhete.data} ${badgeTipo}</div>
-                            </div>
+                            <div class="d-flex align-items-center gap-3"><div class="text-white fw-bold"><i class="bi bi-calendar3 texto-cinza me-2"></i>${bilhete.data} ${badgeTipo}</div></div>
                             <div class="text-center"><span class="badge ${bilhete.isWin ? 'bg-success' : 'bg-danger'} fs-6 px-3">${bilhete.greens}/${bilhete.total}</span></div>
                             <div class="text-end fw-bold fs-5 ${corGrana}">R$ ${sinal}${valorExibir}</div>
-                        </div>
-                    `;
+                        </div>`;
                 });
             }
-
-            // Atualiza o painel VIP com cores baseadas no lucro
-            document.getElementById('stat-vip-entradas').innerText = statsVIP.entradas;
-            document.getElementById('stat-vip-vitorias').innerText = statsVIP.vitorias;
+            document.getElementById('stat-vip-entradas').innerText = statsVIP.entradas; document.getElementById('stat-vip-vitorias').innerText = statsVIP.vitorias;
             const ganhoVipEl = document.getElementById('stat-vip-ganhos');
             ganhoVipEl.innerText = `R$ ${statsVIP.lucroLiquido > 0 ? '+' : ''}${statsVIP.lucroLiquido.toFixed(2)}`;
             ganhoVipEl.className = `fw-bold mb-0 ${statsVIP.lucroLiquido > 0 ? 'text-success' : (statsVIP.lucroLiquido < 0 ? 'text-danger' : 'text-warning')}`;
-
-            document.getElementById('stat-mm-entradas').innerText = statsMM.entradas;
-            document.getElementById('stat-mm-vitorias').innerText = statsMM.vitorias;
-            document.getElementById('stat-mm-ganhos').innerText = statsMM.lucro;
+            document.getElementById('stat-mm-entradas').innerText = statsMM.entradas; document.getElementById('stat-mm-vitorias').innerText = statsMM.vitorias; document.getElementById('stat-mm-ganhos').innerText = statsMM.lucro;
         }
 
         function limparHistorico(tipo) {
             let nomeAlvo = tipo === 'VIP' ? 'VIP (Real)' : '+/- (Testes)';
-            if(confirm(`Tem certeza que deseja zerar APENAS o histórico ${nomeAlvo}?`)) {
-                historicoApostas = historicoApostas.filter(b => b.tipo !== tipo); 
-                salvarNaNuvem();
-                renderizarHistorico();
-            }
+            if(confirm(`Zerar APENAS o histórico ${nomeAlvo}?`)) { historicoApostas = historicoApostas.filter(b => b.tipo !== tipo); salvarNaNuvem(); renderizarHistorico(); }
         }
 
         function renderizarRascunhos() {
             function desenharLista(lista, divId, cor) {
-                const div = document.getElementById(divId);
-                div.innerHTML = '';
-                if(lista.length === 0) {
-                    div.innerHTML = '<div class="small texto-cinza text-center mt-2">Nenhum jogador...</div>';
-                    return;
-                }
+                const div = document.getElementById(divId); div.innerHTML = '';
+                if(lista.length === 0) { div.innerHTML = '<div class="small texto-cinza text-center mt-2">Nenhum jogador...</div>'; return; }
                 lista.forEach((ap, index) => {
-                    const htmlConfianca = ap.confianca ? `<span class="badge border border-${cor} text-${cor} ms-1" style="background:transparent; font-size: 0.65rem;">${ap.confianca.toFixed(0)}%</span>` : '';
+                    const textoLinha = ap.mercado === 'Vencedor' ? `<span class="text-warning fw-bold">Para Vencer</span>` : `${ap.sugestao} ${ap.linha} ${ap.mercado}`;
                     div.innerHTML += `
                         <div class="carrinho-item d-flex justify-content-between align-items-center border-start border-${cor}">
-                            <div><strong>${ap.jogador}</strong> ${htmlConfianca}<br> <span class="texto-cinza">${ap.sugestao} ${ap.linha} ${ap.mercado}</span></div>
+                            <div><strong>${ap.jogador}</strong><br> <span class="texto-cinza small">${textoLinha}</span></div>
                             <button class="btn btn-sm text-danger px-2" onclick="removerDoRascunho(${index}, '${divId}')"><i class="bi bi-trash"></i></button>
-                        </div>
-                    `;
+                        </div>`;
                 });
             }
-            desenharLista(rascunhoVIP, 'lista-rascunho-vip', 'warning');
-            desenharLista(rascunhoMaisMenos, 'lista-rascunho-mm', 'info');
+            desenharLista(rascunhoVIP, 'lista-rascunho-vip', 'warning'); desenharLista(rascunhoMaisMenos, 'lista-rascunho-mm', 'info');
+        }
+
+        // --- NOVA FUNÇÃO QUE DESLIGA A LINHA SE FOR TIME ---
+        function verificarMercadoManual() {
+            const val = document.getElementById('manual-mercado').value;
+            const isVencedor = val === 'Vencedor';
+            document.getElementById('manual-linha').disabled = isVencedor;
+            document.getElementById('manual-sugestao').disabled = isVencedor;
+            if(isVencedor) {
+                document.getElementById('manual-linha').value = '';
+                document.getElementById('manual-jogador').placeholder = 'Time (ex: BOS Celtics)';
+            } else {
+                document.getElementById('manual-jogador').placeholder = 'Jogador (ex: LeBron)';
+            }
         }
 
         function adicionarAoRascunho(jogador, mercado, linha, sugestao, confianca, tipoDestino) {
             const aposta = { id_selecao: Date.now() + Math.random(), jogador, mercado, linha, sugestao, confianca, resultado: null };
-            if(tipoDestino === 'VIP') rascunhoVIP.push(aposta);
-            else rascunhoMaisMenos.push(aposta);
-            renderizarRascunhos();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            if(tipoDestino === 'VIP') rascunhoVIP.push(aposta); else rascunhoMaisMenos.push(aposta);
+            renderizarRascunhos(); window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         function removerDoRascunho(index, divId) {
-            if(divId.includes('vip')) rascunhoVIP.splice(index, 1);
-            else rascunhoMaisMenos.splice(index, 1);
-            renderizarRascunhos();
+            if(divId.includes('vip')) rascunhoVIP.splice(index, 1); else rascunhoMaisMenos.splice(index, 1); renderizarRascunhos();
         }
 
+        // --- SALVAR MANUAL ATUALIZADO PARA ACEITAR VENCEDOR ---
         function salvarManual(tipoDestino) {
             const jogador = document.getElementById('manual-jogador').value;
             const mercado = document.getElementById('manual-mercado').value;
-            const linha = document.getElementById('manual-linha').value;
-            const sugestao = document.getElementById('manual-sugestao').value;
-            if(!jogador || !linha) { alert("Preencha o nome e a linha!"); return; }
+            let linha = document.getElementById('manual-linha').value;
+            let sugestao = document.getElementById('manual-sugestao').value;
+            
+            if(!jogador) { alert("Preencha o nome!"); return; }
+            
+            if(mercado === 'Vencedor') {
+                linha = 0; 
+                sugestao = 'VENCE'; // Padronizamos
+            } else if(!linha) { 
+                alert("Preencha a linha corretamente para props!"); return; 
+            }
+            
             adicionarAoRascunho(jogador, mercado, parseFloat(linha), sugestao, null, tipoDestino);
-            document.getElementById('manual-jogador').value = ''; document.getElementById('manual-linha').value = '';
+            document.getElementById('manual-jogador').value = ''; 
+            if(mercado !== 'Vencedor') document.getElementById('manual-linha').value = '';
         }
 
         function clonarParaRascunho(idBilhete) {
-            let bilheteAlvo = bilhetesAtivos.find(b => parseInt(b.id) === parseInt(idBilhete));
-            if (!bilheteAlvo) {
-                bilheteAlvo = historicoApostas.find(b => parseInt(b.id) === parseInt(idBilhete));
-            }
+            let bilheteAlvo = bilhetesAtivos.find(b => parseInt(b.id) === parseInt(idBilhete)) || historicoApostas.find(b => parseInt(b.id) === parseInt(idBilhete));
             if (!bilheteAlvo) return;
-            
-            bilheteAlvo.selecoes.forEach(sel => {
-                adicionarAoRascunho(sel.jogador, sel.mercado, sel.linha, sel.sugestao, sel.confianca, bilheteAlvo.tipo);
-            });
-            
+            bilheteAlvo.selecoes.forEach(sel => adicionarAoRascunho(sel.jogador, sel.mercado, sel.linha, sel.sugestao, sel.confianca, bilheteAlvo.tipo));
             const modalEl = document.getElementById('modalBilhete');
-            if(modalEl) {
-                const modal = bootstrap.Modal.getInstance(modalEl);
-                if(modal) modal.hide();
-            }
-            
+            if(modalEl) { const modal = bootstrap.Modal.getInstance(modalEl); if(modal) modal.hide(); }
             window.scrollTo({ top: 0, behavior: 'smooth' });
-            const nomeDraft = bilheteAlvo.tipo === 'VIP' ? 'VIP' : '+/-';
-            alert(`✅ ${bilheteAlvo.selecoes.length} seleções copiadas com sucesso para o Rascunho ${nomeDraft}!`);
+            alert(`✅ ${bilheteAlvo.selecoes.length} seleções copiadas com sucesso!`);
         }
 
         function registrarBilhete(tipo) {
             let listaAlvo = tipo === 'VIP' ? rascunhoVIP : rascunhoMaisMenos;
-            if(listaAlvo.length === 0) { alert("Adicione seleções ao rascunho antes de registrar a entrada!"); return; }
+            if(listaAlvo.length === 0) { alert("Adicione seleções ao rascunho antes de registrar!"); return; }
 
-            let odd = 0;
-            let valor = 0;
-            let premioPotencial = 0;
-
+            let odd = 0; let valor = 0; let premioPotencial = 0;
             if (tipo === 'VIP') {
                 odd = parseFloat(document.getElementById('vip-odd').value);
                 valor = parseFloat(document.getElementById('vip-valor').value);
-                
-                if(!odd || !valor || odd <= 0 || valor <= 0) {
-                    alert("Para bilhetes VIP, preencha a Odd Total e o Valor da Aposta (R$) corretamente!");
-                    return;
-                }
+                if(!odd || !valor || odd <= 0 || valor <= 0) { alert("Preencha a Odd Total e o Valor da Aposta (R$)!"); return; }
                 premioPotencial = valor * odd;
             }
 
-            const novoBilhete = {
-                id: Date.now(),
-                tipo: tipo,
-                status: 'ABERTO',
-                odd: odd,
-                valor: valor,
-                premioPotencial: premioPotencial,
-                selecoes: [...listaAlvo] 
-            };
-
+            const novoBilhete = { id: Date.now(), tipo: tipo, status: 'ABERTO', odd: odd, valor: valor, premioPotencial: premioPotencial, selecoes: [...listaAlvo] };
             bilhetesAtivos.push(novoBilhete);
             
-            if(tipo === 'VIP') {
-                rascunhoVIP = [];
-                document.getElementById('vip-odd').value = '';
-                document.getElementById('vip-valor').value = '';
-            } else {
-                rascunhoMaisMenos = [];
-            }
-
-            salvarNaNuvem();
-            renderizarRascunhos();
-            renderizarTrackerAoVivo();
+            if(tipo === 'VIP') { rascunhoVIP = []; document.getElementById('vip-odd').value = ''; document.getElementById('vip-valor').value = ''; } else rascunhoMaisMenos = [];
+            salvarNaNuvem(); renderizarRascunhos(); renderizarTrackerAoVivo();
         }
 
-        function toggleBilhete(id) {
-            const body = document.getElementById(`bilhete-body-${id}`);
-            body.classList.toggle('show');
-        }
-
-        function limparTrackerAoVivo() {
-            if(bilhetesAtivos.length === 0) return;
-            if(confirm("Deseja CANCELAR todos os bilhetes em andamento?")) {
-                bilhetesAtivos = [];
-                salvarNaNuvem();
-                renderizarTrackerAoVivo();
-            }
-        }
-
-        function apagarBilheteUnico(idBilhete) {
-            if(confirm("Cancelar esta entrada?")) {
-                bilhetesAtivos = bilhetesAtivos.filter(b => b.id !== idBilhete);
-                salvarNaNuvem();
-                renderizarTrackerAoVivo();
-            }
-        }
+        function toggleBilhete(id) { document.getElementById(`bilhete-body-${id}`).classList.toggle('show'); }
+        function limparTrackerAoVivo() { if(bilhetesAtivos.length > 0 && confirm("CANCELAR todos os bilhetes em andamento?")) { bilhetesAtivos = []; salvarNaNuvem(); renderizarTrackerAoVivo(); } }
+        function apagarBilheteUnico(idBilhete) { if(confirm("Cancelar esta entrada?")) { bilhetesAtivos = bilhetesAtivos.filter(b => b.id !== idBilhete); salvarNaNuvem(); renderizarTrackerAoVivo(); } }
 
         function renderizarTrackerAoVivo() {
             const container = document.getElementById('lista-bilhetes-ativos');
@@ -497,17 +410,17 @@
                 let htmlSelecoes = '';
                 bilhete.selecoes.forEach(ap => {
                     let statusVisual = `<div class="p-1 rounded text-center" style="background: #111; border: 1px dashed #444;" id="live-${ap.id_selecao}"><span class="spinner-border spinner-border-sm text-secondary" style="width: 10px; height: 10px;"></span> <span class="small texto-cinza" style="font-size: 0.75rem;">Aguardando...</span></div>`;
-                    
                     const valorExibicao = ap.valor_final !== undefined ? ap.valor_final : '--';
                     if (ap.resultado === 'GREEN') statusVisual = `<div class="p-1 rounded text-center bg-success bg-opacity-25 text-success fw-bold" style="font-size: 0.8rem;">✅ BATEU (${valorExibicao})</div>`;
                     else if (ap.resultado === 'RED') statusVisual = `<div class="p-1 rounded text-center bg-danger bg-opacity-25 text-danger fw-bold" style="font-size: 0.8rem;">❌ RED (${valorExibicao})</div>`;
+                    
+                    const textoDescricao = ap.mercado === 'Vencedor' ? `<span class="text-warning">Ganhador da Partida</span>` : `${ap.sugestao} ${ap.linha} ${ap.mercado}`;
 
                     htmlSelecoes += `
                         <div class="row align-items-center mb-2 pb-2 border-bottom border-secondary border-opacity-25">
-                            <div class="col-6"><strong>${ap.jogador}</strong><br><small class="texto-cinza">${ap.sugestao} ${ap.linha} ${ap.mercado}</small></div>
+                            <div class="col-6"><strong>${ap.jogador}</strong><br><small class="texto-cinza">${textoDescricao}</small></div>
                             <div class="col-6">${statusVisual}</div>
-                        </div>
-                    `;
+                        </div>`;
                 });
 
                 container.innerHTML += `
@@ -521,18 +434,14 @@
                             </div>
                         </div>
                         ${infoApostaVisual}
-                        <div class="bilhete-body show" id="bilhete-body-${bilhete.id}">
-                            ${htmlSelecoes}
-                        </div>
-                    </div>
-                `;
+                        <div class="bilhete-body show" id="bilhete-body-${bilhete.id}">${htmlSelecoes}</div>
+                    </div>`;
             });
             atualizarAoVivo();
         }
 
         function atualizarAoVivo() {
             if(bilhetesAtivos.length === 0) return;
-            
             let todasApostasLisas = [];
             bilhetesAtivos.forEach(b => b.selecoes.forEach(s => { s.id = s.id_selecao; todasApostasLisas.push(s); }));
 
@@ -545,55 +454,71 @@
                     bilhete.selecoes.forEach(ap => {
                         const info = dadosLive[ap.id_selecao];
                         if(info && info.iniciado && !ap.resultado) { 
-                            const precisa = parseFloat(ap.linha);
-                            const fez = info.valor_atual;
                             const jogoAcabou = info.status.includes("Final");
-                            
                             let novoStatus = null;
-                            if (ap.sugestao === "MAIS DE" && fez > precisa) novoStatus = 'GREEN';
-                            else if (ap.sugestao === "MENOS DE" && fez > precisa) novoStatus = 'RED';
-                            else if (jogoAcabou) {
-                                if (ap.sugestao === "MAIS DE" && fez <= precisa) novoStatus = 'RED';
-                                if (ap.sugestao === "MENOS DE" && fez <= precisa) novoStatus = 'GREEN';
-                            }
+                            let fez = info.valor_atual;
 
-                            if (novoStatus) {
-                                ap.resultado = novoStatus;
-                                ap.valor_final = fez; 
-                                atualizouAlgumResultado = true;
-                            }
+                            // ---> NOVA LÓGICA VENCEDOR DA PARTIDA (FRONT-END) <---
+                            if (ap.mercado === 'Vencedor') {
+                                const adv = info.placar_adversario || 0;
+                                if (jogoAcabou) {
+                                    if (fez > adv) novoStatus = 'GREEN'; else novoStatus = 'RED';
+                                }
+                                
+                                if (novoStatus) {
+                                    ap.resultado = novoStatus;
+                                    ap.valor_final = `${fez}x${adv}`; // Salva o placar tipo "110x105"
+                                    atualizouAlgumResultado = true;
+                                } else {
+                                    const divLive = document.getElementById(`live-${ap.id_selecao}`);
+                                    if(divLive) {
+                                        let cor = fez >= adv ? 'text-success' : 'text-danger';
+                                        divLive.innerHTML = `
+                                            <div class="d-flex justify-content-between small px-1" style="font-size: 0.75rem;">
+                                                <span>Placar: <strong class="${cor}">${fez} x ${adv}</strong></span> 
+                                                <span>🏀 ${info.status}</span>
+                                            </div>
+                                            <div class="progress mt-1" style="height: 4px; background-color: #000;"><div class="progress-bar bg-warning" style="width: 100%"></div></div>
+                                        `;
+                                    }
+                                }
+                            } 
+                            // ----------------------------------------------------
+                            else { // Lógica antiga para Jogadores
+                                const precisa = parseFloat(ap.linha);
+                                if (ap.sugestao === "MAIS DE" && fez > precisa) novoStatus = 'GREEN';
+                                else if (ap.sugestao === "MENOS DE" && fez > precisa) novoStatus = 'RED';
+                                else if (jogoAcabou) {
+                                    if (ap.sugestao === "MAIS DE" && fez <= precisa) novoStatus = 'RED';
+                                    if (ap.sugestao === "MENOS DE" && fez <= precisa) novoStatus = 'GREEN';
+                                }
 
-                            if (!novoStatus) {
-                                const divLive = document.getElementById(`live-${ap.id_selecao}`);
-                                if(divLive) {
-                                    const progresso = Math.min((fez / precisa) * 100, 100);
-                                    let qd = info.em_quadra ? `<i class="bi bi-fire text-success"></i>` : `<i class="bi bi-pause text-secondary"></i>`;
-                                    divLive.innerHTML = `
-                                        <div class="d-flex justify-content-between small px-1" style="font-size: 0.75rem;">
-                                            <span>Fez: <strong>${fez}</strong> / ${precisa}</span> <span>${qd} ${info.status}</span>
-                                        </div>
-                                        <div class="progress mt-1" style="height: 4px; background-color: #000;">
-                                            <div class="progress-bar bg-primary" style="width: ${progresso}%"></div>
-                                        </div>
-                                    `;
+                                if (novoStatus) {
+                                    ap.resultado = novoStatus; ap.valor_final = fez; atualizouAlgumResultado = true;
+                                } else {
+                                    const divLive = document.getElementById(`live-${ap.id_selecao}`);
+                                    if(divLive) {
+                                        const progresso = Math.min((fez / precisa) * 100, 100);
+                                        let qd = info.em_quadra ? `<i class="bi bi-fire text-success"></i>` : `<i class="bi bi-pause text-secondary"></i>`;
+                                        divLive.innerHTML = `
+                                            <div class="d-flex justify-content-between small px-1" style="font-size: 0.75rem;">
+                                                <span>Fez: <strong>${fez}</strong> / ${precisa}</span> <span>${qd} ${info.status}</span>
+                                            </div>
+                                            <div class="progress mt-1" style="height: 4px; background-color: #000;"><div class="progress-bar bg-primary" style="width: ${progresso}%"></div></div>
+                                        `;
+                                    }
                                 }
                             }
                         }
                     });
                 });
 
-                if (atualizouAlgumResultado) {
-                    salvarNaNuvem();
-                    renderizarTrackerAoVivo(); 
-                    fecharBilhetesCompletos(); 
-                }
+                if (atualizouAlgumResultado) { salvarNaNuvem(); renderizarTrackerAoVivo(); fecharBilhetesCompletos(); }
             }).catch(err => console.error(err));
         }
 
         function fecharBilhetesCompletos() {
-            let sobraram = [];
-            let alterou = false;
-
+            let sobraram = []; let alterou = false;
             bilhetesAtivos.forEach(bilhete => {
                 const todasProntas = bilhete.selecoes.every(ap => ap.resultado !== null);
                 if(todasProntas) {
@@ -603,103 +528,63 @@
                     const isWin = (reds === 0 && greens === total);
                     
                     let premioFinal = 0;
-                    
                     if (bilhete.tipo === 'VIP') {
-                        if (isWin) {
-                            premioFinal = bilhete.premioPotencial - bilhete.valor; // Lucro líquido
-                        } else {
-                            premioFinal = -bilhete.valor; // Perdeu o valor apostado
-                        }
+                        if (isWin) premioFinal = bilhete.premioPotencial - bilhete.valor; 
+                        else premioFinal = -bilhete.valor; 
                     } else {
-                        if (isWin && TABELA_PREMIOS[total]) premioFinal = TABELA_PREMIOS[total];
-                        else if (isWin && total > 10) premioFinal = 1200;
+                        if (isWin && TABELA_PREMIOS[total]) premioFinal = TABELA_PREMIOS[total]; else if (isWin && total > 10) premioFinal = 1200;
                     }
 
-                    const arquivado = {
-                        id: bilhete.id, data: new Date().toLocaleDateString('pt-BR'),
-                        total: total, greens: greens, reds: reds, isWin: isWin, 
-                        premio: premioFinal, 
-                        odd: bilhete.odd, valor: bilhete.valor, premioPotencial: bilhete.premioPotencial,
-                        selecoes: bilhete.selecoes, tipo: bilhete.tipo
-                    };
-
-                    historicoApostas.push(arquivado);
-                    alterou = true;
+                    const arquivado = { id: bilhete.id, data: new Date().toLocaleDateString('pt-BR'), total: total, greens: greens, reds: reds, isWin: isWin, premio: premioFinal, odd: bilhete.odd, valor: bilhete.valor, premioPotencial: bilhete.premioPotencial, selecoes: bilhete.selecoes, tipo: bilhete.tipo };
+                    historicoApostas.push(arquivado); alterou = true;
                     
                     const avisoNome = bilhete.tipo === 'VIP' ? 'VIP (Real)' : '+/- (Teste)';
-                    setTimeout(() => {
-                        if(isWin) alert(`🤖 ENTRADA ${avisoNome} BATEU! Perfeito de ${total} jogos!`);
-                        else alert(`🤖 ENTRADA ${avisoNome} QUEBROU. Placar: ${greens}/${total}.`);
-                    }, 500);
-                } else {
-                    sobraram.push(bilhete); 
-                }
+                    setTimeout(() => { if(isWin) alert(`🤖 ENTRADA ${avisoNome} BATEU! Perfeito de ${total} jogos!`); else alert(`🤖 ENTRADA ${avisoNome} QUEBROU. Placar: ${greens}/${total}.`); }, 500);
+                } else sobraram.push(bilhete); 
             });
 
-            if(alterou) {
-                bilhetesAtivos = sobraram;
-                salvarNaNuvem();
-                renderizarTrackerAoVivo();
-                renderizarHistorico();
-            }
+            if(alterou) { bilhetesAtivos = sobraram; salvarNaNuvem(); renderizarTrackerAoVivo(); renderizarHistorico(); }
         }
 
         function abrirDetalhesBilhete(idBilhete) {
             const bilhete = historicoApostas.find(b => parseInt(b.id) === parseInt(idBilhete));
             if(!bilhete) return;
 
-            // Insere Odd e Valor no título se for VIP
             let infoExtra = '';
-            if(bilhete.tipo === 'VIP' && bilhete.valor && bilhete.odd) {
-                infoExtra = ` <span class="badge bg-dark border border-warning ms-2" style="font-size: 0.75rem;">Aposta: R$ ${bilhete.valor.toFixed(2)} | Odd: ${bilhete.odd.toFixed(2)}</span>`;
-            }
+            if(bilhete.tipo === 'VIP' && bilhete.valor && bilhete.odd) infoExtra = ` <span class="badge bg-dark border border-warning ms-2" style="font-size: 0.75rem;">Aposta: R$ ${bilhete.valor.toFixed(2)} | Odd: ${bilhete.odd.toFixed(2)}</span>`;
 
             document.getElementById('modal-titulo-tipo').innerHTML = (bilhete.tipo === 'VIP' ? '<i class="bi bi-star-fill text-warning"></i> Bilhete VIP' : '<i class="bi bi-tools text-info"></i> Bilhete +/-') + infoExtra;
             document.getElementById('modal-data').innerText = bilhete.data;
             document.getElementById('modal-placar').innerText = `${bilhete.greens}/${bilhete.total}`;
             document.getElementById('modal-placar').className = bilhete.isWin ? "fw-bold mb-0 text-success" : "fw-bold mb-0 text-danger";
             
-            let textoPremio = '';
-            if (bilhete.tipo === 'VIP') {
-                textoPremio = bilhete.premio > 0 ? `+ R$ ${bilhete.premio.toFixed(2)}` : `- R$ ${Math.abs(bilhete.premio).toFixed(2)}`;
-            } else {
-                textoPremio = `R$ ${bilhete.premio}`;
-            }
-
+            let textoPremio = bilhete.tipo === 'VIP' ? (bilhete.premio > 0 ? `+ R$ ${bilhete.premio.toFixed(2)}` : `- R$ ${Math.abs(bilhete.premio).toFixed(2)}`) : `R$ ${bilhete.premio}`;
             document.getElementById('modal-premio').innerText = textoPremio;
             document.getElementById('modal-premio').className = bilhete.isWin ? (bilhete.tipo === 'VIP' ? "fw-bold mb-0 text-success" : "fw-bold mb-0 text-info") : "fw-bold mb-0 text-danger";
 
-            const divLista = document.getElementById('modal-lista-selecoes');
-            divLista.innerHTML = '';
+            const divLista = document.getElementById('modal-lista-selecoes'); divLista.innerHTML = '';
             
             bilhete.selecoes.forEach(ap => {
                 const isGreen = ap.resultado === 'GREEN';
                 const classeCor = isGreen ? 'green' : 'red';
                 const iconeTexto = isGreen ? '<span class="text-success fw-bold">✅ Bateu</span>' : '<span class="text-danger fw-bold">❌ Red</span>';
-                const confiancaHtml = ap.confianca ? `<span class="badge bg-dark text-info border border-info ms-2">${parseFloat(ap.confianca).toFixed(1)}%</span>` : '';
+                const textoDescricao = ap.mercado === 'Vencedor' ? `<span class="text-warning">Para Vencer</span>` : `${ap.sugestao} ${ap.linha} ${ap.mercado}`;
                 const valorFez = (ap.valor_final !== undefined && ap.valor_final !== null) ? ap.valor_final : '--';
                 
                 divLista.innerHTML += `
                     <div class="selecao-detalhe ${classeCor} d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong class="text-white fs-6">${ap.jogador}</strong> ${confiancaHtml}
-                            <div class="small texto-cinza">Aposta: ${ap.sugestao} <span class="text-white fw-bold">${ap.linha}</span> ${ap.mercado}</div>
-                        </div>
+                        <div><strong class="text-white fs-6">${ap.jogador}</strong><div class="small texto-cinza">Aposta: <span class="text-white fw-bold">${textoDescricao}</span></div></div>
                         <div class="text-end">${iconeTexto}<br><span class="small" style="color: ${isGreen ? '#00ff88' : '#ff3333'};">Fez ${valorFez}</span></div>
                     </div>`;
             });
             
             document.getElementById('btn-clonar-historico').onclick = function() { clonarParaRascunho(idBilhete); };
-            
-            const modalEl = document.getElementById('modalBilhete');
-            const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
-            modal.show();
+            const modalEl = document.getElementById('modalBilhete'); const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl); modal.show();
         }
 
         function montarCard(dados) {
             let corSelo = dados.confianca >= 85 ? 'bg-success' : (dados.confianca >= 70 ? 'bg-warning text-dark' : 'bg-danger');
-            const argJogador = dados.jogador.replace(/'/g, "\\'");
-            const argMercado = dados.mercado.replace(/'/g, "\\'");
+            const argJogador = dados.jogador.replace(/'/g, "\\'"); const argMercado = dados.mercado.replace(/'/g, "\\'");
             return `
                 <div class="p-4 mt-3 animate__animated animate__fadeIn" style="background: rgba(20,20,20,0.8); border-radius: 12px; border-top: 4px solid #00ff88;">
                     <div class="d-flex justify-content-between align-items-center mb-1"><h3 class="mb-0 fw-bold text-white">${dados.jogador}</h3><span class="badge ${corSelo} fs-5 shadow">${dados.confianca.toFixed(1)}% Score</span></div>
@@ -707,7 +592,6 @@
                     <h4 class="texto-destaque mb-3">🔥 ${dados.sugestao} ${dados.linha} ${dados.mercado}</h4>
                     <div class="box-ia mb-4 shadow-sm">🤖 ${dados.explicacao}</div>
                     <div class="termometro-bg mb-3"><div class="termometro-fill" style="width: 0%;" id="barra-${dados.jogador.replace(/\s+/g, '')}"></div></div>
-                    <p class="small mb-3 texto-cinza">Média: <strong class="text-white">${dados.media.toFixed(1)}</strong> | Hist: <span class="font-monospace text-light">[${dados.historico.join(', ')}]</span></p>
                     <div class="dropdown">
                         <button class="btn btn-neon-action w-100 dropdown-toggle py-2 fw-bold" type="button" data-bs-toggle="dropdown"><i class="bi bi-cart-plus"></i> Enviar para Montagem</button>
                         <ul class="dropdown-menu dropdown-menu-dark w-100">
