@@ -20,6 +20,7 @@
 
         .form-control, .form-select { background-color: #1a1b22; color: #fff; border: 1px solid #333; border-radius: 8px; padding: 12px; }
         .form-control:focus, .form-select:focus { background-color: #23252e; color: #fff; border-color: #00ff88; box-shadow: 0 0 10px rgba(0, 255, 136, 0.2); }
+        .form-control::placeholder { color: #666; }
         
         .box-ia { background: rgba(0, 255, 136, 0.05); border-left: 3px solid #00ff88; border-radius: 0 8px 8px 0; padding: 15px; font-style: italic; color: #e0e0e0; }
         .btn-neon-action { background-color: #00ff88; color: #000; font-weight: bold; border-radius: 8px; transition: all 0.3s; }
@@ -71,7 +72,7 @@
                     <div class="row g-2 mt-2">
                         <div class="col-4"><div class="stat-box"><h4 class="text-info fw-bold mb-0" id="stat-vip-entradas">0</h4><small class="texto-cinza" style="font-size: 0.7rem;">BILHETES</small></div></div>
                         <div class="col-4"><div class="stat-box"><h4 class="text-success fw-bold mb-0" id="stat-vip-vitorias">0</h4><small class="texto-cinza" style="font-size: 0.7rem;">GREENS</small></div></div>
-                        <div class="col-4"><div class="stat-box"><h4 class="text-warning fw-bold mb-0">R$<span id="stat-vip-ganhos">0</span></h4><small class="texto-cinza" style="font-size: 0.7rem;">LUCRO</small></div></div>
+                        <div class="col-4"><div class="stat-box"><h4 class="fw-bold mb-0" id="stat-vip-ganhos">R$ 0.00</h4><small class="texto-cinza" style="font-size: 0.7rem;">LUCRO LÍQUIDO</small></div></div>
                     </div>
                 </div>
             </div>
@@ -119,14 +120,24 @@
                     <div class="carrinho-box border-warning border-opacity-50">
                         <h6 class="text-warning fw-bold mb-2">💎 Rascunho VIP</h6>
                         <div id="lista-rascunho-vip" class="mb-3" style="min-height: 50px;"></div>
+                        
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <input type="number" step="0.01" id="vip-odd" class="form-control form-control-sm bg-dark text-warning border-warning" placeholder="Odd Total (ex: 3.50)">
+                            </div>
+                            <div class="col-6">
+                                <input type="number" step="1" id="vip-valor" class="form-control form-control-sm bg-dark text-success border-success" placeholder="Valor R$ (ex: 20)">
+                            </div>
+                        </div>
+
                         <button class="btn btn-warning btn-sm w-100 fw-bold" onclick="registrarBilhete('VIP')">Registrar Entrada VIP <i class="bi bi-arrow-right-circle"></i></button>
                     </div>
                 </div>
                 <div class="col-md-6 mt-3 mt-md-0">
-                    <div class="carrinho-box border-info border-opacity-50">
+                    <div class="carrinho-box border-info border-opacity-50 h-100 d-flex flex-column">
                         <h6 class="text-info fw-bold mb-2">🛠️ Rascunho +/-</h6>
-                        <div id="lista-rascunho-mm" class="mb-3" style="min-height: 50px;"></div>
-                        <button class="btn btn-info btn-sm w-100 fw-bold text-dark" onclick="registrarBilhete('MAIS_MENOS')">Registrar Entrada +/- <i class="bi bi-arrow-right-circle"></i></button>
+                        <div id="lista-rascunho-mm" class="flex-grow-1 mb-3" style="min-height: 50px;"></div>
+                        <button class="btn btn-info btn-sm w-100 fw-bold text-dark mt-auto" onclick="registrarBilhete('MAIS_MENOS')">Registrar Entrada +/- <i class="bi bi-arrow-right-circle"></i></button>
                     </div>
                 </div>
             </div>
@@ -261,7 +272,7 @@
         };
 
         function renderizarHistorico() {
-            let statsVIP = { entradas: 0, vitorias: 0, lucro: 0 };
+            let statsVIP = { entradas: 0, vitorias: 0, lucroLiquido: 0 };
             let statsMM = { entradas: 0, vitorias: 0, lucro: 0 };
 
             const divLista = document.getElementById('lista-historico');
@@ -273,16 +284,27 @@
                 [...historicoApostas].reverse().forEach(bilhete => {
                     let s = bilhete.tipo === 'VIP' ? statsVIP : statsMM;
                     s.entradas++;
-                    if(bilhete.isWin) {
-                        s.vitorias++;
-                        s.lucro += bilhete.premio; 
+                    
+                    if (bilhete.tipo === 'VIP') {
+                        // Para VIP, o prêmio já foi salvo como positivo (lucro líquido) ou negativo (perda)
+                        s.lucroLiquido += (bilhete.premio || 0);
+                        if(bilhete.isWin) s.vitorias++;
+                    } else {
+                        if(bilhete.isWin) {
+                            s.vitorias++;
+                            s.lucro += bilhete.premio; 
+                        }
                     }
                     
                     const classeBorda = bilhete.isWin ? 'hist-green' : 'hist-red';
-                    const corGrana = bilhete.isWin ? (bilhete.tipo === 'VIP' ? 'text-warning' : 'text-info') : 'texto-cinza';
+                    // Se for VIP e prêmio for maior que 0 é verde, menor que 0 é vermelho.
+                    const corGrana = bilhete.tipo === 'VIP' ? (bilhete.premio > 0 ? 'text-success' : 'text-danger') : (bilhete.isWin ? 'text-info' : 'texto-cinza');
                     const badgeTipo = bilhete.tipo === 'VIP' 
                         ? '<span class="badge bg-warning text-dark ms-2"><i class="bi bi-star"></i> VIP</span>' 
                         : '<span class="badge bg-info text-dark ms-2"><i class="bi bi-tools"></i> +/-</span>';
+
+                    let sinal = (bilhete.tipo === 'VIP' && bilhete.premio > 0) ? '+' : '';
+                    let valorExibir = bilhete.tipo === 'VIP' ? bilhete.premio.toFixed(2) : bilhete.premio;
 
                     divLista.innerHTML += `
                         <div class="hist-item ${classeBorda} d-flex justify-content-between align-items-center" onclick="abrirDetalhesBilhete(${bilhete.id})">
@@ -290,15 +312,18 @@
                                 <div class="text-white fw-bold"><i class="bi bi-calendar3 texto-cinza me-2"></i>${bilhete.data} ${badgeTipo}</div>
                             </div>
                             <div class="text-center"><span class="badge ${bilhete.isWin ? 'bg-success' : 'bg-danger'} fs-6 px-3">${bilhete.greens}/${bilhete.total}</span></div>
-                            <div class="text-end fw-bold fs-5 ${corGrana}">R$ ${bilhete.premio}</div>
+                            <div class="text-end fw-bold fs-5 ${corGrana}">R$ ${sinal}${valorExibir}</div>
                         </div>
                     `;
                 });
             }
 
+            // Atualiza o painel VIP com cores baseadas no lucro
             document.getElementById('stat-vip-entradas').innerText = statsVIP.entradas;
             document.getElementById('stat-vip-vitorias').innerText = statsVIP.vitorias;
-            document.getElementById('stat-vip-ganhos').innerText = statsVIP.lucro;
+            const ganhoVipEl = document.getElementById('stat-vip-ganhos');
+            ganhoVipEl.innerText = `R$ ${statsVIP.lucroLiquido > 0 ? '+' : ''}${statsVIP.lucroLiquido.toFixed(2)}`;
+            ganhoVipEl.className = `fw-bold mb-0 ${statsVIP.lucroLiquido > 0 ? 'text-success' : (statsVIP.lucroLiquido < 0 ? 'text-danger' : 'text-warning')}`;
 
             document.getElementById('stat-mm-entradas').innerText = statsMM.entradas;
             document.getElementById('stat-mm-vitorias').innerText = statsMM.vitorias;
@@ -360,30 +385,24 @@
             document.getElementById('manual-jogador').value = ''; document.getElementById('manual-linha').value = '';
         }
 
-        // --- NOVA FUNÇÃO CLONAR BILHETE ---
         function clonarParaRascunho(idBilhete) {
-            // Procura o bilhete nos ativos ou no histórico
             let bilheteAlvo = bilhetesAtivos.find(b => parseInt(b.id) === parseInt(idBilhete));
             if (!bilheteAlvo) {
                 bilheteAlvo = historicoApostas.find(b => parseInt(b.id) === parseInt(idBilhete));
             }
             if (!bilheteAlvo) return;
             
-            // Clona seleção por seleção pro rascunho correspondente
             bilheteAlvo.selecoes.forEach(sel => {
                 adicionarAoRascunho(sel.jogador, sel.mercado, sel.linha, sel.sugestao, sel.confianca, bilheteAlvo.tipo);
             });
             
-            // Se estiver com o modal aberto, fecha ele
             const modalEl = document.getElementById('modalBilhete');
             if(modalEl) {
                 const modal = bootstrap.Modal.getInstance(modalEl);
                 if(modal) modal.hide();
             }
             
-            // Rola pro topo suavemente
             window.scrollTo({ top: 0, behavior: 'smooth' });
-            
             const nomeDraft = bilheteAlvo.tipo === 'VIP' ? 'VIP' : '+/-';
             alert(`✅ ${bilheteAlvo.selecoes.length} seleções copiadas com sucesso para o Rascunho ${nomeDraft}!`);
         }
@@ -392,17 +411,40 @@
             let listaAlvo = tipo === 'VIP' ? rascunhoVIP : rascunhoMaisMenos;
             if(listaAlvo.length === 0) { alert("Adicione seleções ao rascunho antes de registrar a entrada!"); return; }
 
+            let odd = 0;
+            let valor = 0;
+            let premioPotencial = 0;
+
+            if (tipo === 'VIP') {
+                odd = parseFloat(document.getElementById('vip-odd').value);
+                valor = parseFloat(document.getElementById('vip-valor').value);
+                
+                if(!odd || !valor || odd <= 0 || valor <= 0) {
+                    alert("Para bilhetes VIP, preencha a Odd Total e o Valor da Aposta (R$) corretamente!");
+                    return;
+                }
+                premioPotencial = valor * odd;
+            }
+
             const novoBilhete = {
                 id: Date.now(),
                 tipo: tipo,
                 status: 'ABERTO',
+                odd: odd,
+                valor: valor,
+                premioPotencial: premioPotencial,
                 selecoes: [...listaAlvo] 
             };
 
             bilhetesAtivos.push(novoBilhete);
             
-            if(tipo === 'VIP') rascunhoVIP = [];
-            else rascunhoMaisMenos = [];
+            if(tipo === 'VIP') {
+                rascunhoVIP = [];
+                document.getElementById('vip-odd').value = '';
+                document.getElementById('vip-valor').value = '';
+            } else {
+                rascunhoMaisMenos = [];
+            }
 
             salvarNaNuvem();
             renderizarRascunhos();
@@ -447,6 +489,11 @@
                 let textoPlacar = `<span class="badge bg-secondary ms-2">${greensAtuais}/${qtd}</span>`;
                 if(redsAtuais > 0) textoPlacar = `<span class="badge bg-danger ms-2">Quebrou ❌</span>`;
 
+                let infoApostaVisual = '';
+                if(bilhete.tipo === 'VIP' && bilhete.valor && bilhete.odd) {
+                    infoApostaVisual = `<div class="w-100 text-end py-2 px-3" style="background: #111; border-bottom: 1px solid #333;"><span class="badge bg-dark border border-warning text-warning" style="font-size: 0.8rem;">R$ ${bilhete.valor.toFixed(2)} <i class="bi bi-arrow-right mx-1"></i> R$ ${bilhete.premioPotencial.toFixed(2)} (Odd ${bilhete.odd.toFixed(2)})</span></div>`;
+                }
+
                 let htmlSelecoes = '';
                 bilhete.selecoes.forEach(ap => {
                     let statusVisual = `<div class="p-1 rounded text-center" style="background: #111; border: 1px dashed #444;" id="live-${ap.id_selecao}"><span class="spinner-border spinner-border-sm text-secondary" style="width: 10px; height: 10px;"></span> <span class="small texto-cinza" style="font-size: 0.75rem;">Aguardando...</span></div>`;
@@ -473,6 +520,7 @@
                                 <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="event.stopPropagation(); apagarBilheteUnico(${bilhete.id})"><i class="bi bi-trash"></i></button>
                             </div>
                         </div>
+                        ${infoApostaVisual}
                         <div class="bilhete-body show" id="bilhete-body-${bilhete.id}">
                             ${htmlSelecoes}
                         </div>
@@ -554,14 +602,25 @@
                     const reds = bilhete.selecoes.filter(ap => ap.resultado === 'RED').length;
                     const isWin = (reds === 0 && greens === total);
                     
-                    let premio = 0;
-                    if (isWin && TABELA_PREMIOS[total]) premio = TABELA_PREMIOS[total];
-                    else if (isWin && total > 10) premio = 1200;
+                    let premioFinal = 0;
+                    
+                    if (bilhete.tipo === 'VIP') {
+                        if (isWin) {
+                            premioFinal = bilhete.premioPotencial - bilhete.valor; // Lucro líquido
+                        } else {
+                            premioFinal = -bilhete.valor; // Perdeu o valor apostado
+                        }
+                    } else {
+                        if (isWin && TABELA_PREMIOS[total]) premioFinal = TABELA_PREMIOS[total];
+                        else if (isWin && total > 10) premioFinal = 1200;
+                    }
 
                     const arquivado = {
                         id: bilhete.id, data: new Date().toLocaleDateString('pt-BR'),
                         total: total, greens: greens, reds: reds, isWin: isWin, 
-                        premio: premio, selecoes: bilhete.selecoes, tipo: bilhete.tipo
+                        premio: premioFinal, 
+                        odd: bilhete.odd, valor: bilhete.valor, premioPotencial: bilhete.premioPotencial,
+                        selecoes: bilhete.selecoes, tipo: bilhete.tipo
                     };
 
                     historicoApostas.push(arquivado);
@@ -569,7 +628,7 @@
                     
                     const avisoNome = bilhete.tipo === 'VIP' ? 'VIP (Real)' : '+/- (Teste)';
                     setTimeout(() => {
-                        if(isWin) alert(`🤖 ENTRADA ${avisoNome} BATEU! Perfeito de ${total} jogos!\n💸 Retorno: R$ ${premio}`);
+                        if(isWin) alert(`🤖 ENTRADA ${avisoNome} BATEU! Perfeito de ${total} jogos!`);
                         else alert(`🤖 ENTRADA ${avisoNome} QUEBROU. Placar: ${greens}/${total}.`);
                     }, 500);
                 } else {
@@ -589,12 +648,26 @@
             const bilhete = historicoApostas.find(b => parseInt(b.id) === parseInt(idBilhete));
             if(!bilhete) return;
 
-            document.getElementById('modal-titulo-tipo').innerHTML = bilhete.tipo === 'VIP' ? '<i class="bi bi-star-fill text-warning"></i> Bilhete VIP' : '<i class="bi bi-tools text-info"></i> Bilhete +/-';
+            // Insere Odd e Valor no título se for VIP
+            let infoExtra = '';
+            if(bilhete.tipo === 'VIP' && bilhete.valor && bilhete.odd) {
+                infoExtra = ` <span class="badge bg-dark border border-warning ms-2" style="font-size: 0.75rem;">Aposta: R$ ${bilhete.valor.toFixed(2)} | Odd: ${bilhete.odd.toFixed(2)}</span>`;
+            }
+
+            document.getElementById('modal-titulo-tipo').innerHTML = (bilhete.tipo === 'VIP' ? '<i class="bi bi-star-fill text-warning"></i> Bilhete VIP' : '<i class="bi bi-tools text-info"></i> Bilhete +/-') + infoExtra;
             document.getElementById('modal-data').innerText = bilhete.data;
             document.getElementById('modal-placar').innerText = `${bilhete.greens}/${bilhete.total}`;
             document.getElementById('modal-placar').className = bilhete.isWin ? "fw-bold mb-0 text-success" : "fw-bold mb-0 text-danger";
-            document.getElementById('modal-premio').innerText = `R$ ${bilhete.premio}`;
-            document.getElementById('modal-premio').className = bilhete.isWin ? (bilhete.tipo === 'VIP' ? "fw-bold mb-0 text-warning" : "fw-bold mb-0 text-info") : "fw-bold mb-0 text-secondary";
+            
+            let textoPremio = '';
+            if (bilhete.tipo === 'VIP') {
+                textoPremio = bilhete.premio > 0 ? `+ R$ ${bilhete.premio.toFixed(2)}` : `- R$ ${Math.abs(bilhete.premio).toFixed(2)}`;
+            } else {
+                textoPremio = `R$ ${bilhete.premio}`;
+            }
+
+            document.getElementById('modal-premio').innerText = textoPremio;
+            document.getElementById('modal-premio').className = bilhete.isWin ? (bilhete.tipo === 'VIP' ? "fw-bold mb-0 text-success" : "fw-bold mb-0 text-info") : "fw-bold mb-0 text-danger";
 
             const divLista = document.getElementById('modal-lista-selecoes');
             divLista.innerHTML = '';
@@ -616,7 +689,6 @@
                     </div>`;
             });
             
-            // Atrela a ação de clonar ao botão do rodapé do modal
             document.getElementById('btn-clonar-historico').onclick = function() { clonarParaRascunho(idBilhete); };
             
             const modalEl = document.getElementById('modalBilhete');
