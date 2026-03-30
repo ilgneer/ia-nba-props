@@ -310,7 +310,7 @@ def api_live():
             # Filtro anti-fantasma (15h)
             try:
                 horario_jogo = datetime.strptime(jogo['gameTimeUTC'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc)
-                if (agora - horario_jogo).total_seconds() / 3600 > 15: continue
+                if (agora - horario_jogo).total_seconds() / 3600 > 30: continue
             except: pass
             
             if status in [2, 3]:
@@ -347,7 +347,7 @@ def api_live():
                 for jogo in jogos:
                     try:
                         horario_jogo = datetime.strptime(jogo['gameTimeUTC'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc)
-                        if (agora - horario_jogo).total_seconds() / 3600 > 15: continue
+                        if (agora - horario_jogo).total_seconds() / 3600 > 30: continue
                     except: pass
                     
                     t_casa = limpar_nome(jogo['homeTeam']['teamName'])

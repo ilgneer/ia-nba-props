@@ -250,7 +250,9 @@
         function renderizarHistorico() {
             let statsVIP = { entradas: 0, vitorias: 0, lucroLiquido: 0 };
             let statsMM = { entradas: 0, vitorias: 0, lucro: 0 };
-            const divLista = document.getElementById('lista-historico'); divLista.innerHTML = '';
+
+            const divLista = document.getElementById('lista-historico');
+            divLista.innerHTML = '';
 
             if (historicoApostas.length === 0) {
                 divLista.innerHTML = '<div class="text-center small texto-cinza py-3">Nenhum bilhete resolvido ainda.</div>';
@@ -259,32 +261,51 @@
                     let s = bilhete.tipo === 'VIP' ? statsVIP : statsMM;
                     s.entradas++;
                     
+                    // Tratamento BLINDADO contra valores nulos ou corrompidos
+                    let premioSeguro = bilhete.premio ? parseFloat(bilhete.premio) : 0;
+                    if (isNaN(premioSeguro)) premioSeguro = 0;
+
                     if (bilhete.tipo === 'VIP') {
-                        s.lucroLiquido += (bilhete.premio || 0);
+                        s.lucroLiquido += premioSeguro;
                         if(bilhete.isWin) s.vitorias++;
                     } else {
-                        if(bilhete.isWin) { s.vitorias++; s.lucro += bilhete.premio; }
+                        if(bilhete.isWin) {
+                            s.vitorias++;
+                            s.lucro += premioSeguro; 
+                        }
                     }
                     
                     const classeBorda = bilhete.isWin ? 'hist-green' : 'hist-red';
-                    const corGrana = bilhete.tipo === 'VIP' ? (bilhete.premio > 0 ? 'text-success' : 'text-danger') : (bilhete.isWin ? 'text-info' : 'texto-cinza');
-                    const badgeTipo = bilhete.tipo === 'VIP' ? '<span class="badge bg-warning text-dark ms-2"><i class="bi bi-star"></i> VIP</span>' : '<span class="badge bg-info text-dark ms-2"><i class="bi bi-tools"></i> +/-</span>';
-                    let sinal = (bilhete.tipo === 'VIP' && bilhete.premio > 0) ? '+' : '';
-                    let valorExibir = bilhete.tipo === 'VIP' ? bilhete.premio.toFixed(2) : bilhete.premio;
+                    const corGrana = bilhete.tipo === 'VIP' ? (premioSeguro > 0 ? 'text-success' : 'text-danger') : (bilhete.isWin ? 'text-info' : 'texto-cinza');
+                    const badgeTipo = bilhete.tipo === 'VIP' 
+                        ? '<span class="badge bg-warning text-dark ms-2"><i class="bi bi-star"></i> VIP</span>' 
+                        : '<span class="badge bg-info text-dark ms-2"><i class="bi bi-tools"></i> +/-</span>';
+
+                    let sinal = (bilhete.tipo === 'VIP' && premioSeguro > 0) ? '+' : '';
+                    let valorExibir = bilhete.tipo === 'VIP' ? premioSeguro.toFixed(2) : premioSeguro;
 
                     divLista.innerHTML += `
                         <div class="hist-item ${classeBorda} d-flex justify-content-between align-items-center" onclick="abrirDetalhesBilhete(${bilhete.id})">
-                            <div class="d-flex align-items-center gap-3"><div class="text-white fw-bold"><i class="bi bi-calendar3 texto-cinza me-2"></i>${bilhete.data} ${badgeTipo}</div></div>
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="text-white fw-bold"><i class="bi bi-calendar3 texto-cinza me-2"></i>${bilhete.data} ${badgeTipo}</div>
+                            </div>
                             <div class="text-center"><span class="badge ${bilhete.isWin ? 'bg-success' : 'bg-danger'} fs-6 px-3">${bilhete.greens}/${bilhete.total}</span></div>
                             <div class="text-end fw-bold fs-5 ${corGrana}">R$ ${sinal}${valorExibir}</div>
-                        </div>`;
+                        </div>
+                    `;
                 });
             }
-            document.getElementById('stat-vip-entradas').innerText = statsVIP.entradas; document.getElementById('stat-vip-vitorias').innerText = statsVIP.vitorias;
+
+            // Atualiza os painéis financeiros de forma segura
+            document.getElementById('stat-vip-entradas').innerText = statsVIP.entradas;
+            document.getElementById('stat-vip-vitorias').innerText = statsVIP.vitorias;
             const ganhoVipEl = document.getElementById('stat-vip-ganhos');
             ganhoVipEl.innerText = `R$ ${statsVIP.lucroLiquido > 0 ? '+' : ''}${statsVIP.lucroLiquido.toFixed(2)}`;
             ganhoVipEl.className = `fw-bold mb-0 ${statsVIP.lucroLiquido > 0 ? 'text-success' : (statsVIP.lucroLiquido < 0 ? 'text-danger' : 'text-warning')}`;
-            document.getElementById('stat-mm-entradas').innerText = statsMM.entradas; document.getElementById('stat-mm-vitorias').innerText = statsMM.vitorias; document.getElementById('stat-mm-ganhos').innerText = statsMM.lucro;
+
+            document.getElementById('stat-mm-entradas').innerText = statsMM.entradas;
+            document.getElementById('stat-mm-vitorias').innerText = statsMM.vitorias;
+            document.getElementById('stat-mm-ganhos').innerText = statsMM.lucro;
         }
 
         function limparHistorico(tipo) {
