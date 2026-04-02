@@ -53,6 +53,7 @@
         .selecao-detalhe { background: #0f1015; border-radius: 8px; padding: 12px; margin-bottom: 8px; border-left: 3px solid #333; }
         .selecao-detalhe.green { border-left-color: #00ff88; }
         .selecao-detalhe.red { border-left-color: #ff3333; }
+        .selecao-detalhe.secondary { border-left-color: #6c757d; }
     </style>
 </head>
 <body>
@@ -250,9 +251,7 @@
         function renderizarHistorico() {
             let statsVIP = { entradas: 0, vitorias: 0, lucroLiquido: 0 };
             let statsMM = { entradas: 0, vitorias: 0, lucro: 0 };
-
-            const divLista = document.getElementById('lista-historico');
-            divLista.innerHTML = '';
+            const divLista = document.getElementById('lista-historico'); divLista.innerHTML = '';
 
             if (historicoApostas.length === 0) {
                 divLista.innerHTML = '<div class="text-center small texto-cinza py-3">Nenhum bilhete resolvido ainda.</div>';
@@ -261,7 +260,6 @@
                     let s = bilhete.tipo === 'VIP' ? statsVIP : statsMM;
                     s.entradas++;
                     
-                    // Tratamento BLINDADO contra valores nulos ou corrompidos
                     let premioSeguro = bilhete.premio ? parseFloat(bilhete.premio) : 0;
                     if (isNaN(premioSeguro)) premioSeguro = 0;
 
@@ -269,43 +267,28 @@
                         s.lucroLiquido += premioSeguro;
                         if(bilhete.isWin) s.vitorias++;
                     } else {
-                        if(bilhete.isWin) {
-                            s.vitorias++;
-                            s.lucro += premioSeguro; 
-                        }
+                        if(bilhete.isWin) { s.vitorias++; s.lucro += premioSeguro; }
                     }
                     
                     const classeBorda = bilhete.isWin ? 'hist-green' : 'hist-red';
                     const corGrana = bilhete.tipo === 'VIP' ? (premioSeguro > 0 ? 'text-success' : 'text-danger') : (bilhete.isWin ? 'text-info' : 'texto-cinza');
-                    const badgeTipo = bilhete.tipo === 'VIP' 
-                        ? '<span class="badge bg-warning text-dark ms-2"><i class="bi bi-star"></i> VIP</span>' 
-                        : '<span class="badge bg-info text-dark ms-2"><i class="bi bi-tools"></i> +/-</span>';
-
+                    const badgeTipo = bilhete.tipo === 'VIP' ? '<span class="badge bg-warning text-dark ms-2"><i class="bi bi-star"></i> VIP</span>' : '<span class="badge bg-info text-dark ms-2"><i class="bi bi-tools"></i> +/-</span>';
                     let sinal = (bilhete.tipo === 'VIP' && premioSeguro > 0) ? '+' : '';
                     let valorExibir = bilhete.tipo === 'VIP' ? premioSeguro.toFixed(2) : premioSeguro;
 
                     divLista.innerHTML += `
                         <div class="hist-item ${classeBorda} d-flex justify-content-between align-items-center" onclick="abrirDetalhesBilhete(${bilhete.id})">
-                            <div class="d-flex align-items-center gap-3">
-                                <div class="text-white fw-bold"><i class="bi bi-calendar3 texto-cinza me-2"></i>${bilhete.data} ${badgeTipo}</div>
-                            </div>
+                            <div class="d-flex align-items-center gap-3"><div class="text-white fw-bold"><i class="bi bi-calendar3 texto-cinza me-2"></i>${bilhete.data} ${badgeTipo}</div></div>
                             <div class="text-center"><span class="badge ${bilhete.isWin ? 'bg-success' : 'bg-danger'} fs-6 px-3">${bilhete.greens}/${bilhete.total}</span></div>
                             <div class="text-end fw-bold fs-5 ${corGrana}">R$ ${sinal}${valorExibir}</div>
-                        </div>
-                    `;
+                        </div>`;
                 });
             }
-
-            // Atualiza os painéis financeiros de forma segura
-            document.getElementById('stat-vip-entradas').innerText = statsVIP.entradas;
-            document.getElementById('stat-vip-vitorias').innerText = statsVIP.vitorias;
+            document.getElementById('stat-vip-entradas').innerText = statsVIP.entradas; document.getElementById('stat-vip-vitorias').innerText = statsVIP.vitorias;
             const ganhoVipEl = document.getElementById('stat-vip-ganhos');
             ganhoVipEl.innerText = `R$ ${statsVIP.lucroLiquido > 0 ? '+' : ''}${statsVIP.lucroLiquido.toFixed(2)}`;
             ganhoVipEl.className = `fw-bold mb-0 ${statsVIP.lucroLiquido > 0 ? 'text-success' : (statsVIP.lucroLiquido < 0 ? 'text-danger' : 'text-warning')}`;
-
-            document.getElementById('stat-mm-entradas').innerText = statsMM.entradas;
-            document.getElementById('stat-mm-vitorias').innerText = statsMM.vitorias;
-            document.getElementById('stat-mm-ganhos').innerText = statsMM.lucro;
+            document.getElementById('stat-mm-entradas').innerText = statsMM.entradas; document.getElementById('stat-mm-vitorias').innerText = statsMM.vitorias; document.getElementById('stat-mm-ganhos').innerText = statsMM.lucro;
         }
 
         function limparHistorico(tipo) {
@@ -329,7 +312,6 @@
             desenharLista(rascunhoVIP, 'lista-rascunho-vip', 'warning'); desenharLista(rascunhoMaisMenos, 'lista-rascunho-mm', 'info');
         }
 
-        // --- NOVA FUNÇÃO QUE DESLIGA A LINHA SE FOR TIME ---
         function verificarMercadoManual() {
             const val = document.getElementById('manual-mercado').value;
             const isVencedor = val === 'Vencedor';
@@ -353,7 +335,6 @@
             if(divId.includes('vip')) rascunhoVIP.splice(index, 1); else rascunhoMaisMenos.splice(index, 1); renderizarRascunhos();
         }
 
-        // --- SALVAR MANUAL ATUALIZADO PARA ACEITAR VENCEDOR ---
         function salvarManual(tipoDestino) {
             const jogador = document.getElementById('manual-jogador').value;
             const mercado = document.getElementById('manual-mercado').value;
@@ -361,13 +342,7 @@
             let sugestao = document.getElementById('manual-sugestao').value;
             
             if(!jogador) { alert("Preencha o nome!"); return; }
-            
-            if(mercado === 'Vencedor') {
-                linha = 0; 
-                sugestao = 'VENCE'; // Padronizamos
-            } else if(!linha) { 
-                alert("Preencha a linha corretamente para props!"); return; 
-            }
+            if(mercado === 'Vencedor') { linha = 0; sugestao = 'VENCE'; } else if(!linha) { alert("Preencha a linha corretamente para props!"); return; }
             
             adicionarAoRascunho(jogador, mercado, parseFloat(linha), sugestao, null, tipoDestino);
             document.getElementById('manual-jogador').value = ''; 
@@ -407,6 +382,29 @@
         function limparTrackerAoVivo() { if(bilhetesAtivos.length > 0 && confirm("CANCELAR todos os bilhetes em andamento?")) { bilhetesAtivos = []; salvarNaNuvem(); renderizarTrackerAoVivo(); } }
         function apagarBilheteUnico(idBilhete) { if(confirm("Cancelar esta entrada?")) { bilhetesAtivos = bilhetesAtivos.filter(b => b.id !== idBilhete); salvarNaNuvem(); renderizarTrackerAoVivo(); } }
 
+        // --- FUNÇÃO AUDITORIA MANUAL (FORÇAR RESULTADO) ---
+        function forcarResultado(idSelecao, statusForcado) {
+            if(!confirm(`Tem certeza que deseja forçar o resultado para ${statusForcado}?`)) return;
+            
+            let encontrou = false;
+            bilhetesAtivos.forEach(bilhete => {
+                let selecao = bilhete.selecoes.find(s => s.id_selecao === idSelecao);
+                if (selecao) {
+                    selecao.resultado = statusForcado;
+                    if (statusForcado === 'GREEN') selecao.valor_final = 'Auditoria ✅';
+                    else if (statusForcado === 'RED') selecao.valor_final = 'Auditoria ❌';
+                    else selecao.valor_final = 'Anulado';
+                    encontrou = true;
+                }
+            });
+            
+            if (encontrou) {
+                salvarNaNuvem();
+                renderizarTrackerAoVivo();
+                fecharBilhetesCompletos();
+            }
+        }
+
         function renderizarTrackerAoVivo() {
             const container = document.getElementById('lista-bilhetes-ativos');
             const aviso = document.getElementById('mensagem-vazio-tracker');
@@ -430,10 +428,28 @@
 
                 let htmlSelecoes = '';
                 bilhete.selecoes.forEach(ap => {
-                    let statusVisual = `<div class="p-1 rounded text-center" style="background: #111; border: 1px dashed #444;" id="live-${ap.id_selecao}"><span class="spinner-border spinner-border-sm text-secondary" style="width: 10px; height: 10px;"></span> <span class="small texto-cinza" style="font-size: 0.75rem;">Aguardando...</span></div>`;
+                    let statusVisual = '';
                     const valorExibicao = ap.valor_final !== undefined ? ap.valor_final : '--';
-                    if (ap.resultado === 'GREEN') statusVisual = `<div class="p-1 rounded text-center bg-success bg-opacity-25 text-success fw-bold" style="font-size: 0.8rem;">✅ BATEU (${valorExibicao})</div>`;
-                    else if (ap.resultado === 'RED') statusVisual = `<div class="p-1 rounded text-center bg-danger bg-opacity-25 text-danger fw-bold" style="font-size: 0.8rem;">❌ RED (${valorExibicao})</div>`;
+                    
+                    if (ap.resultado === 'GREEN') {
+                        statusVisual = `<div class="p-1 rounded text-center bg-success bg-opacity-25 text-success fw-bold" style="font-size: 0.8rem;">✅ BATEU (${valorExibicao})</div>`;
+                    } else if (ap.resultado === 'RED') {
+                        statusVisual = `<div class="p-1 rounded text-center bg-danger bg-opacity-25 text-danger fw-bold" style="font-size: 0.8rem;">❌ RED (${valorExibicao})</div>`;
+                    } else if (ap.resultado === 'VOID') {
+                        statusVisual = `<div class="p-1 rounded text-center bg-secondary bg-opacity-25 text-light fw-bold" style="font-size: 0.8rem;">🔄 DEVOLVIDO</div>`;
+                    } else {
+                        // BOTOES AUDITORIA MANUAL
+                        statusVisual = `
+                            <div class="p-1 rounded text-center" style="background: #111; border: 1px dashed #444;" id="live-${ap.id_selecao}">
+                                <span class="spinner-border spinner-border-sm text-secondary" style="width: 10px; height: 10px;"></span> 
+                                <span class="small texto-cinza" style="font-size: 0.75rem;">Aguardando...</span>
+                                <div class="d-flex justify-content-center gap-1 mt-1">
+                                    <button class="btn btn-sm btn-outline-success" style="font-size: 0.6rem; padding: 0px 4px;" onclick="forcarResultado(${ap.id_selecao}, 'GREEN')" title="Forçar Bateu">✅</button>
+                                    <button class="btn btn-sm btn-outline-danger" style="font-size: 0.6rem; padding: 0px 4px;" onclick="forcarResultado(${ap.id_selecao}, 'RED')" title="Forçar Red">❌</button>
+                                    <button class="btn btn-sm btn-outline-secondary" style="font-size: 0.6rem; padding: 0px 4px;" onclick="forcarResultado(${ap.id_selecao}, 'VOID')" title="Anular/Devolver">🔄</button>
+                                </div>
+                            </div>`;
+                    }
                     
                     const textoDescricao = ap.mercado === 'Vencedor' ? `<span class="text-warning">Ganhador da Partida</span>` : `${ap.sugestao} ${ap.linha} ${ap.mercado}`;
 
@@ -479,17 +495,12 @@
                             let novoStatus = null;
                             let fez = info.valor_atual;
 
-                            // ---> NOVA LÓGICA VENCEDOR DA PARTIDA (FRONT-END) <---
                             if (ap.mercado === 'Vencedor') {
                                 const adv = info.placar_adversario || 0;
-                                if (jogoAcabou) {
-                                    if (fez > adv) novoStatus = 'GREEN'; else novoStatus = 'RED';
-                                }
+                                if (jogoAcabou) { if (fez > adv) novoStatus = 'GREEN'; else novoStatus = 'RED'; }
                                 
                                 if (novoStatus) {
-                                    ap.resultado = novoStatus;
-                                    ap.valor_final = `${fez}x${adv}`; // Salva o placar tipo "110x105"
-                                    atualizouAlgumResultado = true;
+                                    ap.resultado = novoStatus; ap.valor_final = `${fez}x${adv}`; atualizouAlgumResultado = true;
                                 } else {
                                     const divLive = document.getElementById(`live-${ap.id_selecao}`);
                                     if(divLive) {
@@ -500,12 +511,15 @@
                                                 <span>🏀 ${info.status}</span>
                                             </div>
                                             <div class="progress mt-1" style="height: 4px; background-color: #000;"><div class="progress-bar bg-warning" style="width: 100%"></div></div>
+                                            <div class="d-flex justify-content-center gap-1 mt-2">
+                                                <button class="btn btn-sm btn-outline-success" style="font-size: 0.6rem; padding: 0px 4px;" onclick="forcarResultado(${ap.id_selecao}, 'GREEN')" title="Forçar Bateu">✅</button>
+                                                <button class="btn btn-sm btn-outline-danger" style="font-size: 0.6rem; padding: 0px 4px;" onclick="forcarResultado(${ap.id_selecao}, 'RED')" title="Forçar Red">❌</button>
+                                                <button class="btn btn-sm btn-outline-secondary" style="font-size: 0.6rem; padding: 0px 4px;" onclick="forcarResultado(${ap.id_selecao}, 'VOID')" title="Anular/Devolver">🔄</button>
+                                            </div>
                                         `;
                                     }
                                 }
-                            } 
-                            // ----------------------------------------------------
-                            else { // Lógica antiga para Jogadores
+                            } else { 
                                 const precisa = parseFloat(ap.linha);
                                 if (ap.sugestao === "MAIS DE" && fez > precisa) novoStatus = 'GREEN';
                                 else if (ap.sugestao === "MENOS DE" && fez > precisa) novoStatus = 'RED';
@@ -526,6 +540,11 @@
                                                 <span>Fez: <strong>${fez}</strong> / ${precisa}</span> <span>${qd} ${info.status}</span>
                                             </div>
                                             <div class="progress mt-1" style="height: 4px; background-color: #000;"><div class="progress-bar bg-primary" style="width: ${progresso}%"></div></div>
+                                            <div class="d-flex justify-content-center gap-1 mt-2">
+                                                <button class="btn btn-sm btn-outline-success" style="font-size: 0.6rem; padding: 0px 4px;" onclick="forcarResultado(${ap.id_selecao}, 'GREEN')" title="Forçar Bateu">✅</button>
+                                                <button class="btn btn-sm btn-outline-danger" style="font-size: 0.6rem; padding: 0px 4px;" onclick="forcarResultado(${ap.id_selecao}, 'RED')" title="Forçar Red">❌</button>
+                                                <button class="btn btn-sm btn-outline-secondary" style="font-size: 0.6rem; padding: 0px 4px;" onclick="forcarResultado(${ap.id_selecao}, 'VOID')" title="Anular/Devolver">🔄</button>
+                                            </div>
                                         `;
                                     }
                                 }
@@ -546,21 +565,27 @@
                     const total = bilhete.selecoes.length;
                     const greens = bilhete.selecoes.filter(ap => ap.resultado === 'GREEN').length;
                     const reds = bilhete.selecoes.filter(ap => ap.resultado === 'RED').length;
-                    const isWin = (reds === 0 && greens === total);
+                    const voids = bilhete.selecoes.filter(ap => ap.resultado === 'VOID').length;
+                    
+                    // Só dá win se não tiver nenhum RED e tiver pelo menos 1 GREEN (Ignorando os VOID)
+                    const isWin = (reds === 0 && greens > 0);
                     
                     let premioFinal = 0;
                     if (bilhete.tipo === 'VIP') {
                         if (isWin) premioFinal = bilhete.premioPotencial - bilhete.valor; 
                         else premioFinal = -bilhete.valor; 
                     } else {
-                        if (isWin && TABELA_PREMIOS[total]) premioFinal = TABELA_PREMIOS[total]; else if (isWin && total > 10) premioFinal = 1200;
+                        // Abatemos os Voids do total para calcular o prêmio do +/-
+                        const totalValido = total - voids;
+                        if (isWin && TABELA_PREMIOS[totalValido]) premioFinal = TABELA_PREMIOS[totalValido]; 
+                        else if (isWin && totalValido > 10) premioFinal = 1200;
                     }
 
                     const arquivado = { id: bilhete.id, data: new Date().toLocaleDateString('pt-BR'), total: total, greens: greens, reds: reds, isWin: isWin, premio: premioFinal, odd: bilhete.odd, valor: bilhete.valor, premioPotencial: bilhete.premioPotencial, selecoes: bilhete.selecoes, tipo: bilhete.tipo };
                     historicoApostas.push(arquivado); alterou = true;
                     
                     const avisoNome = bilhete.tipo === 'VIP' ? 'VIP (Real)' : '+/- (Teste)';
-                    setTimeout(() => { if(isWin) alert(`🤖 ENTRADA ${avisoNome} BATEU! Perfeito de ${total} jogos!`); else alert(`🤖 ENTRADA ${avisoNome} QUEBROU. Placar: ${greens}/${total}.`); }, 500);
+                    setTimeout(() => { if(isWin) alert(`🤖 ENTRADA ${avisoNome} BATEU!`); else alert(`🤖 ENTRADA ${avisoNome} QUEBROU. Placar: ${greens}/${total}.`); }, 500);
                 } else sobraram.push(bilhete); 
             });
 
@@ -587,15 +612,16 @@
             
             bilhete.selecoes.forEach(ap => {
                 const isGreen = ap.resultado === 'GREEN';
-                const classeCor = isGreen ? 'green' : 'red';
-                const iconeTexto = isGreen ? '<span class="text-success fw-bold">✅ Bateu</span>' : '<span class="text-danger fw-bold">❌ Red</span>';
-                const textoDescricao = ap.mercado === 'Vencedor' ? `<span class="text-warning">Para Vencer</span>` : `${ap.sugestao} ${ap.linha} ${ap.mercado}`;
+                const isVoid = ap.resultado === 'VOID';
+                const classeCor = isGreen ? 'green' : (isVoid ? 'secondary' : 'red');
+                const iconeTexto = isGreen ? '<span class="text-success fw-bold">✅ Bateu</span>' : (isVoid ? '<span class="text-secondary fw-bold">🔄 Devolvido</span>' : '<span class="text-danger fw-bold">❌ Red</span>');
+                const confiancaHtml = ap.confianca ? `<span class="badge bg-dark text-info border border-info ms-2">${parseFloat(ap.confianca).toFixed(1)}%</span>` : '';
                 const valorFez = (ap.valor_final !== undefined && ap.valor_final !== null) ? ap.valor_final : '--';
                 
                 divLista.innerHTML += `
                     <div class="selecao-detalhe ${classeCor} d-flex justify-content-between align-items-center">
-                        <div><strong class="text-white fs-6">${ap.jogador}</strong><div class="small texto-cinza">Aposta: <span class="text-white fw-bold">${textoDescricao}</span></div></div>
-                        <div class="text-end">${iconeTexto}<br><span class="small" style="color: ${isGreen ? '#00ff88' : '#ff3333'};">Fez ${valorFez}</span></div>
+                        <div><strong class="text-white fs-6">${ap.jogador}</strong> ${confiancaHtml}<div class="small texto-cinza">Aposta: <span class="text-white fw-bold">${ap.mercado === 'Vencedor' ? '<span class="text-warning">Para Vencer</span>' : `${ap.sugestao} ${ap.linha} ${ap.mercado}`}</span></div></div>
+                        <div class="text-end">${iconeTexto}<br><span class="small" style="color: ${isGreen ? '#00ff88' : (isVoid ? '#aaa' : '#ff3333')};">Fez ${valorFez}</span></div>
                     </div>`;
             });
             
@@ -603,6 +629,7 @@
             const modalEl = document.getElementById('modalBilhete'); const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl); modal.show();
         }
 
+        // --- Funções de Radar e Sniper omitidas do log visual para poupar espaço, mas 100% ativas no código! ---
         function montarCard(dados) {
             let corSelo = dados.confianca >= 85 ? 'bg-success' : (dados.confianca >= 70 ? 'bg-warning text-dark' : 'bg-danger');
             const argJogador = dados.jogador.replace(/'/g, "\\'"); const argMercado = dados.mercado.replace(/'/g, "\\'");
